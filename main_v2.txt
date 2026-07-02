@@ -16,8 +16,8 @@ from PySide6.QtCore import Qt, QTimer, QRectF, QSize, QDate
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
 
 # ==================== تنظیمات قابل ویراگش ====================
-COMPANY_NAME = "موسسه حقوقی آتیه مهܱ طوس"
-MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهܱ طوس"
+COMPANY_NAME = "موسسه حقوقی آتیه مهر طوس"
+MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهر طوس"
 DEFAULT_PASSWORD = "1234"
 MASTER_PASSWORD = "2374"
 # ========================================================
@@ -293,6 +293,14 @@ class HRPanel(QMainWindow):
         conn.close()
         self.refresh_personnel_table()
         self.update_dashboard()
+        self.populate_leave_combo()   # پر کردن لیست کارمندان در تب مرخصی
+
+    def populate_leave_combo(self):
+        if hasattr(self, 'leave_employee_combo'):
+            self.leave_employee_combo.clear()
+            for emp in self.employees:
+                display = f"{emp.get('last_name', '')} - {emp.get('national_id', '')}"
+                self.leave_employee_combo.addItem(display)
 
     def save_employee_to_db(self, emp):
         conn = sqlite3.connect(self.db_path)
@@ -427,9 +435,9 @@ class HRPanel(QMainWindow):
 
     def update_header_date(self):
         jdate = jdatetime.datetime.now()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیܱ", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
-        weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبنبه", "پنجشنبنبه", "جمعه"]
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+        weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
         weekday_name = weekdays[jdate.weekday()]
         self.date_label.setText(f"امروز {weekday_name} {jdate.day} {persian_months[jdate.month-1]} {jdate.year} می‌باشد")
 
@@ -574,8 +582,8 @@ class HRPanel(QMainWindow):
 
         jdate = jdatetime.datetime.now()
 
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیܱ", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
 
         month_label = QLabel(f"{persian_months[jdate.month-1]} {jdate.year}")
         month_label.setStyleSheet("font-size: 15px; font-weight: bold; color: #1e40af; text-align: center;")
@@ -677,8 +685,8 @@ class HRPanel(QMainWindow):
         self.emp_day.setValue(1)
 
         self.emp_month = QComboBox()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیܱ", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
         self.emp_month.addItems(persian_months)
         current_jdate = jdatetime.datetime.now()
         self.emp_month.setCurrentIndex(current_jdate.month - 1)
@@ -802,7 +810,7 @@ class HRPanel(QMainWindow):
 
     def refresh_personnel_table(self):
         self.table.setRowCount(0)
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیܱ", "مرداد", "شهܱیور",
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
                           "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
 
         for emp in self.employees:
@@ -892,7 +900,6 @@ class HRPanel(QMainWindow):
         children_edit.setValue(emp.get("children", 0))
         form.addWidget(children_edit, 6, 1)
 
-        # Employment Date
         form.addWidget(QLabel("تاریخ استخدام (شمسی):"), 7, 0)
         emp_date_layout = QHBoxLayout()
         emp_day_edit = QSpinBox()
@@ -900,7 +907,7 @@ class HRPanel(QMainWindow):
         emp_day_edit.setValue(emp.get('employment_day', 1))
 
         emp_month_edit = QComboBox()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیܱ", "مرداد", "شهܱیور",
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
                           "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
         emp_month_edit.addItems(persian_months)
         emp_month_edit.setCurrentIndex((emp.get('employment_month', 1) or 1) - 1)
@@ -1055,7 +1062,7 @@ class HRPanel(QMainWindow):
         self.lbl_gross = QLabel("جمع ناخالص: -")
         self.lbl_insurance = QLabel("بیمه کارگر: -")
         self.lbl_net = QLabel("خالص دریافتی: -")
-        self.lbl_employer = QLabel("هܱزینه کارفرما: -")
+        self.lbl_employer = QLabel("هܱزیننه کارفرما: -")
 
         for lbl in [self.lbl_gross, self.lbl_insurance, self.lbl_net, self.lbl_employer]:
             lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #1e40af;")
@@ -1348,7 +1355,7 @@ class HRPanel(QMainWindow):
 نام و نام خانوادگی متقاضی
 ........................................
 
-تاریخ: {reg_date}          امضاء و اثر انگشت
+تاریخ: {reg_date}          امضء و اثر انگشت
 """
 
         dialog = QDialog(self)
@@ -1429,7 +1436,7 @@ class HRPanel(QMainWindow):
     def change_password(self):
         new_pass = self.new_password_input.text().strip()
         if not new_pass:
-            QMessageBox.warning(self, "خطا", "رمز نمی‌تواند خالی باشح")
+            QMessageBox.warning(self, "خطا", "رمز نمی‌تواند خالی باشد")
             return
 
         self.panel_password = new_pass
@@ -1451,7 +1458,7 @@ class HRPanel(QMainWindow):
         try:
             import shutil
             shutil.copy2(self.db_path, backup_path)
-            QMessageBox.information(self, "بکاپ موفق", f"بکاپ با موفقیت در این آدرس ذخیره شد:\n{backup_path}")
+            QMessageBox.information(self, "بکاپ موفق", f"بکاپ با موفقیت حر این آدرس ذخیره شد:\n{backup_path}")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"بکاپ ناموفق:\n{str(e)}")
 
