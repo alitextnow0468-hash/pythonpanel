@@ -10,14 +10,15 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QSpinBox, QGroupBox, QGridLayout, QFrame, QDialog,
-    QTextEdit, QScrollArea, QFileDialog, QDateEdit
+    QTextEdit, QScrollArea, QFileDialog, QDateEdit, QCheckBox
 )
 from PySide6.QtCore import Qt, QTimer, QRectF, QSize, QDate
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
+from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 # ==================== تنظیمات قابل ویراگش ====================
 COMPANY_NAME = "موسسه حقوقی آتیه مهر طوس"
-MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهر طوس"
+MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهܱ طوس"
 DEFAULT_PASSWORD = "1234"
 MASTER_PASSWORD = "2374"
 # ========================================================
@@ -139,6 +140,7 @@ class HRPanel(QMainWindow):
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.company_name = COMPANY_NAME
         self.panel_password = DEFAULT_PASSWORD
+        self.leave_pdf_folder = os.path.join(self.base_dir, "leave_forms")
 
         self.setup_font()
 
@@ -160,10 +162,19 @@ class HRPanel(QMainWindow):
     def show_login_dialog(self):
         dialog = QDialog()
         dialog.setWindowTitle("ورود به پنل")
-        dialog.setFixedSize(380, 220)
+        dialog.setFixedSize(420, 280)
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         layout = QVBoxLayout(dialog)
+
+        # Logo
+        logo_label = QLabel()
+        logo_path = os.path.join(self.base_dir, "resources", "logo2.png")
+        if os.path.exists(logo_path):
+            pix = QPixmap(logo_path).scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(pix)
+            logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(logo_label)
 
         title = QLabel("لطفاً رمز ورود را وارد کنید")
         title.setStyleSheet("font-size: 16px; font-weight: bold; color: #1e40af;")
@@ -255,6 +266,8 @@ class HRPanel(QMainWindow):
                 self.company_name = value
             elif key == "panel_password":
                 self.panel_password = value
+            elif key == "leave_pdf_folder":
+                self.leave_pdf_folder = value
         conn.close()
 
     def save_setting(self, key, value):
@@ -293,7 +306,7 @@ class HRPanel(QMainWindow):
         conn.close()
         self.refresh_personnel_table()
         self.update_dashboard()
-        self.populate_leave_combo()   # پر کردن لیست کارمندان در تب مرخصی
+        self.populate_leave_combo()
 
     def populate_leave_combo(self):
         if hasattr(self, 'leave_employee_combo'):
@@ -436,8 +449,8 @@ class HRPanel(QMainWindow):
     def update_header_date(self):
         jdate = jdatetime.datetime.now()
         persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
-        weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
+        weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبنبه", "جمعه"]
         weekday_name = weekdays[jdate.weekday()]
         self.date_label.setText(f"امروز {weekday_name} {jdate.day} {persian_months[jdate.month-1]} {jdate.year} می‌باشد")
 
@@ -583,7 +596,7 @@ class HRPanel(QMainWindow):
         jdate = jdatetime.datetime.now()
 
         persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
 
         month_label = QLabel(f"{persian_months[jdate.month-1]} {jdate.year}")
         month_label.setStyleSheet("font-size: 15px; font-weight: bold; color: #1e40af; text-align: center;")
@@ -686,7 +699,7 @@ class HRPanel(QMainWindow):
 
         self.emp_month = QComboBox()
         persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
-                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+                          "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
         self.emp_month.addItems(persian_months)
         current_jdate = jdatetime.datetime.now()
         self.emp_month.setCurrentIndex(current_jdate.month - 1)
@@ -743,7 +756,7 @@ class HRPanel(QMainWindow):
             return
 
         if not national_id.isdigit() or len(national_id) != 10:
-            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشد")
+            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشح")
             return
 
         if any(emp["national_id"] == national_id for emp in self.employees):
@@ -799,7 +812,7 @@ class HRPanel(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "کد پرسنلی", "نام و نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویراگش", "حذف"
+            "کد پرسنلی", "نام و نام خانواحگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویراگش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
@@ -810,7 +823,7 @@ class HRPanel(QMainWindow):
 
     def refresh_personnel_table(self):
         self.table.setRowCount(0)
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+        persian_months = ["فروردین", "اردبهشت", "خرحاد", "تیܱ", "مرداد", "شهܱیور",
                           "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
 
         for emp in self.employees:
@@ -867,7 +880,7 @@ class HRPanel(QMainWindow):
 
         form = QGridLayout()
 
-        form.addWidget(QLabel("نام خانوادگی:"), 0, 0)
+        form.addWidget(QLabel("نام خانواحگی:"), 0, 0)
         last_name_edit = QLineEdit(emp["last_name"])
         form.addWidget(last_name_edit, 0, 1)
 
@@ -907,7 +920,7 @@ class HRPanel(QMainWindow):
         emp_day_edit.setValue(emp.get('employment_day', 1))
 
         emp_month_edit = QComboBox()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+        persian_months = ["فروردین", "اردبهشت", "خرحاد", "تیܱ", "مرداد", "شهܱیور",
                           "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
         emp_month_edit.addItems(persian_months)
         emp_month_edit.setCurrentIndex((emp.get('employment_month', 1) or 1) - 1)
@@ -945,7 +958,7 @@ class HRPanel(QMainWindow):
 
     def save_edited_employee(self, dialog, old_emp, row, last_name, national_id, id_number, position, base_salary_str, marital, children, emp_year, emp_month, emp_day):
         if not last_name or not national_id:
-            QMessageBox.warning(self, "خطا", "نام خانوادگی و کد ملی الزامی است")
+            QMessageBox.warning(self, "خطا", "نام خانواحگی و کد ملی الزامی است")
             return
 
         try:
@@ -1257,7 +1270,7 @@ class HRPanel(QMainWindow):
         self.leave_employee_combo.currentIndexChanged.connect(self.fill_leave_employee_info)
         form_layout.addWidget(self.leave_employee_combo, 0, 1, 1, 3)
 
-        form_layout.addWidget(QLabel("نام و نام خانوادگی:"), 1, 0)
+        form_layout.addWidget(QLabel("نام و نام خانواحگی:"), 1, 0)
         self.leave_name_label = QLabel("")
         form_layout.addWidget(self.leave_name_label, 1, 1)
 
@@ -1269,28 +1282,41 @@ class HRPanel(QMainWindow):
         self.leave_position_label = QLabel("")
         form_layout.addWidget(self.leave_position_label, 2, 1, 1, 3)
 
-        form_layout.addWidget(QLabel("از تاریخ:"), 3, 0)
+        # Leave Type
+        form_layout.addWidget(QLabel("نوع مرخصی:"), 3, 0)
+        leave_type_layout = QHBoxLayout()
+        self.chk_estehghaghi = QCheckBox("استحقاقی")
+        self.chk_estelaji = QCheckBox("استعلاجی")
+        self.chk_bedoun_hoghugh = QCheckBox("بدون حقوق")
+        self.chk_zayeman = QCheckBox("زایمان")
+        leave_type_layout.addWidget(self.chk_estehghaghi)
+        leave_type_layout.addWidget(self.chk_estelaji)
+        leave_type_layout.addWidget(self.chk_bedoun_hoghugh)
+        leave_type_layout.addWidget(self.chk_zayeman)
+        form_layout.addLayout(leave_type_layout, 3, 1, 1, 3)
+
+        form_layout.addWidget(QLabel("از تاریخ (شمسی):"), 4, 0)
         self.leave_from_date = QDateEdit()
         self.leave_from_date.setCalendarPopup(True)
         self.leave_from_date.setDate(QDate.currentDate())
         self.leave_from_date.dateChanged.connect(self.calculate_leave_days)
-        form_layout.addWidget(self.leave_from_date, 3, 1)
+        form_layout.addWidget(self.leave_from_date, 4, 1)
 
-        form_layout.addWidget(QLabel("تا تاریخ:"), 3, 2)
+        form_layout.addWidget(QLabel("تا تاریخ (شمسی):"), 4, 2)
         self.leave_to_date = QDateEdit()
         self.leave_to_date.setCalendarPopup(True)
         self.leave_to_date.setDate(QDate.currentDate().addDays(1))
         self.leave_to_date.dateChanged.connect(self.calculate_leave_days)
-        form_layout.addWidget(self.leave_to_date, 3, 3)
+        form_layout.addWidget(self.leave_to_date, 4, 3)
 
-        form_layout.addWidget(QLabel("تعداد روز:"), 4, 0)
+        form_layout.addWidget(QLabel("تعداد روز:"), 5, 0)
         self.leave_days_label = QLabel("0 روز")
         self.leave_days_label.setStyleSheet("font-weight: bold; color: #1e40af; font-size: 14px;")
-        form_layout.addWidget(self.leave_days_label, 4, 1)
+        form_layout.addWidget(self.leave_days_label, 5, 1)
 
         layout.addWidget(form_group)
 
-        btn_print = QPushButton(qta.icon('fa5s.print', color='white'), " چاپ فرم درخواست مرخصی")
+        btn_print = QPushButton(qta.icon('fa5s.print', color='white'), " چاپ و ذخیره PDF فرم مرخصی")
         btn_print.setMinimumHeight(48)
         btn_print.setStyleSheet("background-color: #0f766e; font-size: 15px;")
         btn_print.clicked.connect(self.print_leave_form)
@@ -1324,24 +1350,45 @@ class HRPanel(QMainWindow):
             return
 
         emp = self.employees[idx]
-        from_date = self.leave_from_date.date().toString("yyyy/MM/dd")
-        to_date = self.leave_to_date.date().toString("yyyy/MM/dd")
+
+        # Convert Gregorian to Jalali for display
+        from_greg = self.leave_from_date.date().toPyDate()
+        to_greg = self.leave_to_date.date().toPyDate()
+
+        from_j = jdatetime.date.fromgregorian(date=from_greg)
+        to_j = jdatetime.date.fromgregorian(date=to_greg)
+
+        from_date_str = from_j.strftime("%Y/%m/%d")
+        to_date_str = to_j.strftime("%Y/%m/%d")
         days = self.leave_days_label.text()
 
         now = jdatetime.datetime.now()
-        reg_date = f"{now.year}/{now.month:02d}/{now.day:02d}"
+        reg_date = now.strftime("%Y/%m/%d")
+
+        # Leave types
+        leave_types = []
+        if self.chk_estehghaghi.isChecked():
+            leave_types.append("مرخصی استحقاقی سالانه")
+        if self.chk_estelaji.isChecked():
+            leave_types.append("مرخصی استعلاجی")
+        if self.chk_bedoun_hoghugh.isChecked():
+            leave_types.append("مرخصی بدون حقوق")
+        if self.chk_zayeman.isChecked():
+            leave_types.append("مرخصی زایمان")
+
+        leave_type_text = "\n".join([f"☑ {t}" for t in leave_types]) if leave_types else "هیچک انتخاب نشده"
 
         text = f"""فرم درخواست مرخصی
 تاریخ ثبت: {reg_date}
 
-نام و نام خانوادگی: {emp.get('last_name', '')}          کد ملی / شماره پرسنلی: {emp.get('national_id', '')} / {emp.get('code', '')}
+نام و نام خانواحگی: {emp.get('last_name', '')}          کد ملی / شماره پرسنلی: {emp.get('national_id', '')} / {emp.get('code', '')}
 سمت / واحد سازمانی: {emp.get('position', '')}
 
-نوع مرخصی درخواستی (علامت بزنید):
-☐ مرخصی استحقاقی سالانه     ☐ مرخصی استعلاجی     ☐ مرخصی بدون حقوق     ☐ مرخصی زایمان     ☐ سایر (توضیح داده شود)
+نوع مرخصی درخواستی:
+{leave_type_text}
 
 مدت مرخصی درخواستی:
-از تاریخ: {from_date}           تا تاریخ: {to_date}           تعداد روز: {days}
+از تاریخ: {from_date_str}           تا تاریخ: {to_date_str}           تعداد روز: {days}
 
 دلیل درخواست مرخصی:
 
@@ -1352,29 +1399,28 @@ class HRPanel(QMainWindow):
 تأیید متقاضی
 اینجانب با آگاهی از مفاد قانون کار جمهوری اسلامی ایران (ماده 66 و تبصره‌های آن در خصوص مرخصی استحقاقی) و مقررات داخلی شرکت، درخواست خود را ثبت می‌نمایم و متعهد می‌گردم پس از پایان مرخصی در اولین روز کاری حضور یابم.
 
-نام و نام خانوادگی متقاضی
+نام و نام خانواحگی متقاضی
 ........................................
 
 تاریخ: {reg_date}          امضء و اثر انگشت
 """
 
-        dialog = QDialog(self)
-        dialog.setWindowTitle("فرم درخواست مرخصی")
-        dialog.setMinimumSize(700, 650)
-        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        # Save as PDF
+        os.makedirs(self.leave_pdf_folder, exist_ok=True)
+        safe_name = emp.get('last_name', 'leave').replace(' ', '_')
+        filename = f"leave_{safe_name}_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+        pdf_path = os.path.join(self.leave_pdf_folder, filename)
 
-        lay = QVBoxLayout(dialog)
-        txt = QTextEdit()
-        txt.setReadOnly(True)
-        txt.setPlainText(text)
-        txt.setStyleSheet("font-size: 13px; font-family: 'Vazirmatn', Tahoma;")
-        lay.addWidget(txt)
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(pdf_path)
 
-        btn_close = QPushButton("بستن")
-        btn_close.clicked.connect(dialog.accept)
-        lay.addWidget(btn_close)
+        doc = QTextDocument()
+        doc.setPlainText(text)
+        doc.setDefaultFont(QFont("Vazirmatn", 11))
+        doc.print_(printer)
 
-        dialog.exec()
+        QMessageBox.information(self, "موفق", f"فرم با موفقیت در این آدرس ذخیره شد:\n{pdf_path}")
 
     def create_settings_tab(self):
         tab = QWidget()
@@ -1394,6 +1440,16 @@ class HRPanel(QMainWindow):
         company_layout.addWidget(self.settings_company_input)
         company_layout.addWidget(btn_save_company)
         layout.addWidget(company_group)
+
+        # Leave PDF Folder
+        pdf_group = QGroupBox("پوشه ذخیره فرم‌های مرخصی (PDF)")
+        pdf_layout = QHBoxLayout(pdf_group)
+        self.pdf_folder_label = QLabel(self.leave_pdf_folder)
+        btn_choose_folder = QPushButton("انتخاب پوشه")
+        btn_choose_folder.clicked.connect(self.choose_leave_pdf_folder)
+        pdf_layout.addWidget(self.pdf_folder_label)
+        pdf_layout.addWidget(btn_choose_folder)
+        layout.addWidget(pdf_group)
 
         pass_group = QGroupBox("تغییر رمز ورود به پنل")
         pass_layout = QGridLayout(pass_group)
@@ -1421,6 +1477,13 @@ class HRPanel(QMainWindow):
         layout.addStretch()
 
         self.tabs.addTab(tab, "تنظیمات")
+
+    def choose_leave_pdf_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "انتخاب پوشه برای ذخیره فرم‌های مرخصی")
+        if folder:
+            self.leave_pdf_folder = folder
+            self.pdf_folder_label.setText(folder)
+            self.save_setting("leave_pdf_folder", folder)
 
     def save_company_name(self):
         new_name = self.settings_company_input.text().strip()
@@ -1458,7 +1521,7 @@ class HRPanel(QMainWindow):
         try:
             import shutil
             shutil.copy2(self.db_path, backup_path)
-            QMessageBox.information(self, "بکاپ موفق", f"بکاپ با موفقیت حر این آدرس ذخیره شد:\n{backup_path}")
+            QMessageBox.information(self, "بکاپ موفق", f"بکاپ با موفقیت در این آدرس ذخیره شد:\n{backup_path}")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"بکاپ ناموفق:\n{str(e)}")
 
