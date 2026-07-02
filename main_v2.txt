@@ -326,7 +326,7 @@ class HRPanel(QMainWindow):
 
     def update_header_date(self):
         jdate = jdatetime.datetime.now()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
+        persian_months = ["فروردین", "ارحبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
                           "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
         weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
         weekday_name = weekdays[jdate.weekday()]
@@ -429,8 +429,8 @@ class HRPanel(QMainWindow):
         self.emp_day.setValue(1)
 
         self.emp_month = QComboBox()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
-                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+        persian_months = ["فروردین", "ارحبهشت", "خرحاد", "تیر", "مرداد", "شهعریور",
+                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
         self.emp_month.addItems(persian_months)
         current_jdate = jdatetime.datetime.now()
         self.emp_month.setCurrentIndex(current_jdate.month - 1)
@@ -487,7 +487,7 @@ class HRPanel(QMainWindow):
             return
 
         if not national_id.isdigit() or len(national_id) != 10:
-            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشد")
+            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشح")
             return
 
         if any(emp["national_id"] == national_id for emp in self.employees):
@@ -543,7 +543,7 @@ class HRPanel(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "کد پرسنلی", "نام خانواحگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
+            "کد پرسنلی", "نام خانواحگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویراگش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
@@ -553,8 +553,8 @@ class HRPanel(QMainWindow):
 
     def refresh_personnel_table(self):
         self.table.setRowCount(0)
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
-                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+        persian_months = ["فروردین", "ارحبهشت", "خرحاد", "تیر", "مرداد", "شهعریور",
+                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
 
         for emp in self.employees:
             row = self.table.rowCount()
@@ -583,7 +583,7 @@ class HRPanel(QMainWindow):
 
     def edit_employee(self, row):
         emp = self.employees[row]
-        QMessageBox.information(self, "ویراگش", f"ویراگش {emp['last_name']}\n(در مرحله بعدی کامل می‌شود)")
+        QMessageBox.information(self, "ویراگش", f"ویراگش {emp['last_name']}\n(در مرحله بعحدی کامل می‌شود)")
 
     def delete_employee(self, row):
         emp = self.employees[row]
@@ -648,11 +648,18 @@ class HRPanel(QMainWindow):
         ])
         grid.addWidget(self.sal_shift, 2, 3)
 
-        grid.addWidget(QLabel("سال استخدام (برای سنوات):"), 3, 0)
+        # فیلد جدید: روزهای کار در تعطیلات
+        grid.addWidget(QLabel("روزهای کار در تعطیلات (جمعه/رسمی):"), 3, 2)
+        self.sal_holiday_days = QSpinBox()
+        self.sal_holiday_days.setRange(0, 10)
+        self.sal_holiday_days.setValue(0)
+        grid.addWidget(self.sal_holiday_days, 3, 3)
+
+        grid.addWidget(QLabel("سال استخدام (برای سنوات):"), 4, 0)
         self.sal_emp_year = QSpinBox()
         self.sal_emp_year.setRange(1370, 1405)
         self.sal_emp_year.setValue(1398)
-        grid.addWidget(self.sal_emp_year, 3, 1)
+        grid.addWidget(self.sal_emp_year, 4, 1)
 
         layout.addWidget(input_group)
 
@@ -690,6 +697,7 @@ class HRPanel(QMainWindow):
 
         days = self.sal_days.value()
         ot_hours = self.sal_overtime.value()
+        holiday_days = self.sal_holiday_days.value()
         children = self.sal_children.value()
         is_married = self.sal_married.currentText() == "بلی"
         shift_text = self.sal_shift.currentText()
@@ -712,7 +720,7 @@ class HRPanel(QMainWindow):
 
         ot_pay = ot_hours * d["overtime_hourly"]
 
-        # به‌روز شده طبق درخواست کاربر
+        # شیفت کاری
         shift_rate = 0
         if "شیفت صبح و عصر" in shift_text:
             shift_rate = 0.10
@@ -725,7 +733,12 @@ class HRPanel(QMainWindow):
 
         shift_pay = base_pro_rata * shift_rate
 
-        gross = base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay
+        # تعطیلات کاری (40%)
+        effective_daily = daily + daily_seniority
+        holiday_pay = holiday_days * effective_daily * 1.4
+        holiday_pay = round_to_iranian_payroll(holiday_pay)
+
+        gross = base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay + holiday_pay
         gross = round_to_iranian_payroll(gross)
 
         ins_base = min(gross, d["max_insurable"])
@@ -738,7 +751,7 @@ class HRPanel(QMainWindow):
 
         employer_ins = round_to_iranian_payroll(ins_base * 0.20)
         unemp_ins = round_to_iranian_payroll(ins_base * 0.03)
-        employer_total = round_to_iranian_payroll(base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay + employer_ins + unemp_ins)
+        employer_total = round_to_iranian_payroll(base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay + holiday_pay + employer_ins + unemp_ins)
 
         self.lbl_gross.setText(f"جمع ناخالص: {gross:,} ریال")
         self.lbl_insurance.setText(f"بیمه کارگر: {worker_ins:,} ریال")
@@ -746,14 +759,14 @@ class HRPanel(QMainWindow):
         self.lbl_employer.setText(f"هزینه کارفرما: {employer_total:,} ریال")
 
         self.show_payslip_dialog(
-            base_pro_rata, fixed_benefits, ot_pay, seniority_pay, shift_pay,
+            base_pro_rata, fixed_benefits, ot_pay, seniority_pay, shift_pay, holiday_pay,
             gross, worker_ins, tax, net, employer_ins, unemp_ins, employer_total,
-            days, children, is_married, years, shift_text
+            days, holiday_days, children, is_married, years, shift_text
         )
 
-    def show_payslip_dialog(self, base, benefits, ot, sen, shift_pay,
+    def show_payslip_dialog(self, base, benefits, ot, sen, shift_pay, holiday_pay,
                            gross, worker_ins, tax, net, emp_ins, unemp, employer_total,
-                           days, children, married, years, shift_text):
+                           days, holiday_days, children, married, years, shift_text):
         dialog = QDialog(self)
         dialog.setWindowTitle("فیش حقوقی ماهانه - آتیه مهر طوس")
         dialog.setMinimumSize(650, 520)
@@ -767,7 +780,7 @@ class HRPanel(QMainWindow):
 
         html = f"""
         <h2 style="color:#0f766e; text-align:center;">فیش حقوقی ماهانه - سال ١۴۰۵</h2>
-        <p style="text-align:center; color:#64748b;">موسسه حقوقی آتیه مهر طوس</p>
+        <p style="text-align:center; color:#64748b;">موسسه حقوقی آتیه مهܱ طوس</p>
         <hr>
         <table width="100%" style="font-size:12px;">
             <tr><td><b>حقوق پایه</b></td><td align="left">{base:,} ریال</td></tr>
@@ -775,6 +788,7 @@ class HRPanel(QMainWindow):
             <tr><td><b>اضافه‌کاری</b></td><td align="left">{ot:,} ریال</td></tr>
             <tr><td><b>پایه سنوات ({years} سال)</b></td><td align="left">{sen:,} ریال</td></tr>
             <tr><td><b>مزایای شیفت</b> ({shift_text})</td><td align="left">{shift_pay:,} ریال</td></tr>
+            <tr><td><b>تعطیلات کاری (40%)</b> ({holiday_days} روز)</td><td align="left">{holiday_pay:,} ریال</td></tr>
             <tr style="font-weight:bold; color:#0f766e;"><td>جمع ناخالص</td><td align="left">{gross:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>بیمه کارگر (7%)</td><td align="left">-{worker_ins:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>مالیات</td><td align="left">-{tax:,} ریال</td></tr>
