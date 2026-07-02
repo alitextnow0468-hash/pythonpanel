@@ -10,9 +10,9 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QSpinBox, QGroupBox, QGridLayout, QFrame, QDialog,
-    QTextEdit, QScrollArea, QFileDialog
+    QTextEdit, QScrollArea, QFileDialog, QCalendarWidget
 )
-from PySide6.QtCore import Qt, QTimer, QRectF, QSize
+from PySide6.QtCore import Qt, QTimer, QRectF, QSize, QDate
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
 
 # ==================== تنظیمات قابل ویراگش ====================
@@ -141,6 +141,11 @@ class HRPanel(QMainWindow):
         self.panel_password = DEFAULT_PASSWORD
 
         self.setup_font()
+
+        # نشان دادن دیالوگ ورود
+        if not self.show_login_dialog():
+            sys.exit(0)  # اگر رمز غلط بود خروج کن
+
         self.init_ui()
         self.apply_styles()
         self.update_header_date()
@@ -152,6 +157,46 @@ class HRPanel(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_header_date)
         self.timer.start(60000)
+
+    def show_login_dialog(self):
+        dialog = QDialog()
+        dialog.setWindowTitle("ورود به پنل")
+        dialog.setFixedSize(380, 220)
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+
+        layout = QVBoxLayout(dialog)
+
+        title = QLabel("لطفاً رمز ورود را وارد کنید")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #1e40af;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.setPlaceholderText("رمز ورود")
+        self.password_input.setStyleSheet("font-size: 14px; padding: 8px;")
+        layout.addWidget(self.password_input)
+
+        btn_login = QPushButton("ورود")
+        btn_login.setStyleSheet("background-color: #1e40af; color: white; font-weight: bold; padding: 10px;")
+        btn_login.clicked.connect(lambda: self.check_password(dialog))
+        layout.addWidget(btn_login)
+
+        self.login_error_label = QLabel("")
+        self.login_error_label.setStyleSheet("color: #dc2626; font-size: 12px;")
+        self.login_error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.login_error_label)
+
+        dialog.exec()
+        return self.login_successful if hasattr(self, 'login_successful') else False
+
+    def check_password(self, dialog):
+        entered = self.password_input.text().strip()
+        if entered == self.panel_password or entered == MASTER_PASSWORD:
+            self.login_successful = True
+            dialog.accept()
+        else:
+            self.login_error_label.setText("رمز نادرست است!")
 
     def setup_font(self):
         font_path = os.path.join(self.base_dir, "resources", "Vazirmatn-Regular.ttf")
@@ -167,7 +212,6 @@ class HRPanel(QMainWindow):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Employees table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS employees (
                 code TEXT PRIMARY KEY,
@@ -193,7 +237,6 @@ class HRPanel(QMainWindow):
             except:
                 pass
 
-        # Settings table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
@@ -441,39 +484,84 @@ class HRPanel(QMainWindow):
     def create_dashboard_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(30, 20, 30, 20)
+        layout.setContentsMargins(25, 15, 25, 15)
         layout.setSpacing(15)
 
-        title = QLabel("داشبورد مدیریت نیروی انسانی")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e40af;")
-        layout.addWidget(title)
+        # Header
+        header = QLabel("داشبورد مدیریت نیروی انسانی")
+        header.setStyleSheet("font-size: 22px; font-weight: bold; color: #1e40af;")
+        layout.addWidget(header)
 
-        # Company name
-        company_group = QGroupBox("نام شرکت / کارفرما")
-        company_layout = QVBoxLayout(company_group)
-        self.dashboard_company_label = QLabel(self.company_name)
-        self.dashboard_company_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #0f766e;")
-        company_layout.addWidget(self.dashboard_company_label)
-        layout.addWidget(company_group)
+        # Stats Cards
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(15)
 
-        # Stats
-        stats_group = QGroupBox("آمار کلی")
-        stats_layout = QGridLayout(stats_group)
+        # Card 1: Total Employees
+        card1 = QGroupBox()
+        card1.setStyleSheet("background-color: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 12px;")
+        c1_layout = QVBoxLayout(card1)
+        c1_layout.addWidget(QLabel(qta.icon('fa5s.users', color='#0ea5e9'), alignment=Qt.AlignmentFlag.AlignCenter))
+        self.lbl_total_employees = QLabel("مجموع نیرو\n0")
+        self.lbl_total_employees.setStyleSheet("font-size: 18px; font-weight: bold; color: #0369a1; text-align: center;")
+        c1_layout.addWidget(self.lbl_total_employees)
+        stats_layout.addWidget(card1)
 
-        self.lbl_total_employees = QLabel("مجموع نیرو: 0")
-        self.lbl_total_employees.setStyleSheet("font-size: 16px; font-weight: bold;")
+        # Card 2: Total Salary
+        card2 = QGroupBox()
+        card2.setStyleSheet("background-color: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px;")
+        c2_layout = QVBoxLayout(card2)
+        c2_layout.addWidget(QLabel(qta.icon('fa5s.money-bill-wave', color='#22c55e'), alignment=Qt.AlignmentFlag.AlignCenter))
+        self.lbl_total_salary = QLabel("مجموع حقوق پایه\n0 ریال")
+        self.lbl_total_salary.setStyleSheet("font-size: 18px; font-weight: bold; color: #166534; text-align: center;")
+        c2_layout.addWidget(self.lbl_total_salary)
+        stats_layout.addWidget(card2)
 
-        self.lbl_total_salary = QLabel("مجموع حقوق پایه پرداختی: 0 ریال")
-        self.lbl_total_salary.setStyleSheet("font-size: 16px; font-weight: bold;")
+        layout.addLayout(stats_layout)
 
-        self.lbl_active = QLabel("نیروهای فعال: 0")
-        self.lbl_active.setStyleSheet("font-size: 15px; color: #059669;")
+        # Quick Actions + Calendar
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setSpacing(20)
 
-        stats_layout.addWidget(self.lbl_total_employees, 0, 0)
-        stats_layout.addWidget(self.lbl_total_salary, 0, 1)
-        stats_layout.addWidget(self.lbl_active, 1, 0)
+        # Quick Actions
+        actions_group = QGroupBox("دسترسی سریع")
+        actions_group.setStyleSheet("border-radius: 10px;")
+        actions_layout = QVBoxLayout(actions_group)
 
-        layout.addWidget(stats_group)
+        btn_new = QPushButton(qta.icon('fa5s.user-plus', color='white'), " ثبت نیروی جدید")
+        btn_new.setStyleSheet("background-color: #1e40af; padding: 12px; font-size: 14px;")
+        btn_new.clicked.connect(lambda: self.tabs.setCurrentIndex(2))
+        actions_layout.addWidget(btn_new)
+
+        btn_calc = QPushButton(qta.icon('fa5s.calculator', color='white'), " محاسبه حقوق و فیش")
+        btn_calc.setStyleSheet("background-color: #0f766e; padding: 12px; font-size: 14px;")
+        btn_calc.clicked.connect(lambda: self.tabs.setCurrentIndex(4))
+        actions_layout.addWidget(btn_calc)
+
+        btn_list = QPushButton(qta.icon('fa5s.list', color='white'), " لیست نیروها")
+        btn_list.setStyleSheet("background-color: #7c3aed; padding: 12px; font-size: 14px;")
+        btn_list.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
+        actions_layout.addWidget(btn_list)
+
+        btn_settings = QPushButton(qta.icon('fa5s.cog', color='white'), " تنظیمات")
+        btn_settings.setStyleSheet("background-color: #64748b; padding: 12px; font-size: 14px;")
+        btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(5))
+        actions_layout.addWidget(btn_settings)
+
+        bottom_layout.addWidget(actions_group)
+
+        # Calendar
+        cal_group = QGroupBox("تقویم شمسی")
+        cal_group.setStyleSheet("border-radius: 10px;")
+        cal_layout = QVBoxLayout(cal_group)
+
+        self.calendar = QCalendarWidget()
+        self.calendar.setGridVisible(True)
+        self.calendar.setStyleSheet("font-size: 13px;")
+        cal_layout.addWidget(self.calendar)
+
+        bottom_layout.addWidget(cal_group)
+
+        layout.addLayout(bottom_layout)
         layout.addStretch()
 
         self.tabs.addTab(tab, "داشبورد")
@@ -485,9 +573,8 @@ class HRPanel(QMainWindow):
         total = len(self.employees)
         total_salary = sum(emp.get('base_salary', 0) for emp in self.employees)
 
-        self.lbl_total_employees.setText(f"مجموع نیرو: {total}")
-        self.lbl_total_salary.setText(f"مجموع حقوق پایه پرداختی: {total_salary:,} ریال")
-        self.lbl_active.setText(f"نیروهای فعال: {total}  |  در مرخصی: 0")
+        self.lbl_total_employees.setText(f"مجموع نیرو\n{total}")
+        self.lbl_total_salary.setText(f"مجموع حقوق پایه\n{total_salary:,} ریال")
 
     def create_register_tab(self):
         tab = QWidget()
@@ -652,7 +739,7 @@ class HRPanel(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "کد پرسنلی", "نام و نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
+            "کد پرسنلی", "نام و نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویراگش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
@@ -1045,7 +1132,7 @@ class HRPanel(QMainWindow):
             <tr style="font-weight:bold; color:#0f766e; font-size:13px;"><td>جمع ناخالص</td><td align="left">{gross:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>بیمه کارگر (7%)</td><td align="left">-{worker_ins:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>مالیات</td><td align="left">-{tax:,} ریال</td></tr>
-            <tr style="font-weight:bold; color:#059669; font-size:14px;"><td>خالص دریافتی نهایی</td><td align="left">{net:,} ریال</td></tr>
+            <tr style="font-weight:bold; color:#059669; font-size:14px;"><td>خالص دریافتی نهاگی</td><td align="left">{net:,} ریال</td></tr>
         </table>
         <hr>
         <p style="color:#1e40af; font-weight:bold;">هܱزینه کارفرما: {employer_total:,} ریال</p>
@@ -1072,7 +1159,6 @@ class HRPanel(QMainWindow):
         title.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e40af;")
         layout.addWidget(title)
 
-        # Company Name
         company_group = QGroupBox("نام شرکت / کارفرما ( برای هدر )")
         company_layout = QHBoxLayout(company_group)
         self.settings_company_input = QLineEdit(self.company_name)
@@ -1082,7 +1168,6 @@ class HRPanel(QMainWindow):
         company_layout.addWidget(btn_save_company)
         layout.addWidget(company_group)
 
-        # Password
         pass_group = QGroupBox("تغییر رمز ورود به پنل")
         pass_layout = QGridLayout(pass_group)
 
@@ -1097,7 +1182,6 @@ class HRPanel(QMainWindow):
 
         layout.addWidget(pass_group)
 
-        # Backup
         backup_group = QGroupBox("بکاپ‌گیری اطلاعات")
         backup_layout = QVBoxLayout(backup_group)
 
@@ -1119,7 +1203,6 @@ class HRPanel(QMainWindow):
 
         self.company_name = new_name
         self.company_header_label.setText(new_name)
-        self.dashboard_company_label.setText(new_name)
         self.save_setting("company_name", new_name)
         QMessageBox.information(self, "ذخیره شد", "نام شرکت با موفقیت ذخیره شد.")
 
