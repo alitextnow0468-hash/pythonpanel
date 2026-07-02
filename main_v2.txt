@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QSpinBox, QGroupBox, QGridLayout, QFrame, QDialog,
-    QTextEdit, QScrollArea
+    QTextEdit, QScrollArea, QFileDialog
 )
 from PySide6.QtCore import Qt, QTimer, QRectF, QSize
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
@@ -18,6 +18,8 @@ from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap,
 # ==================== تنظیمات قابل ویراگش ====================
 COMPANY_NAME = "موسسه حقوقی آتیه مهر طوس"
 MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهر طوس"
+DEFAULT_PASSWORD = "1234"
+MASTER_PASSWORD = "2374"
 # ========================================================
 
 # ==================== داده‌های حقوقی ١۴۰۵ ====================
@@ -135,6 +137,8 @@ class HRPanel(QMainWindow):
         self.employees = []
         self.existing_codes = set()
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.company_name = COMPANY_NAME
+        self.panel_password = DEFAULT_PASSWORD
 
         self.setup_font()
         self.init_ui()
@@ -142,6 +146,7 @@ class HRPanel(QMainWindow):
         self.update_header_date()
 
         self.init_database()
+        self.load_settings()
         self.load_employees_from_db()
 
         self.timer = QTimer(self)
@@ -161,6 +166,8 @@ class HRPanel(QMainWindow):
         self.db_path = os.path.join(self.base_dir, "data", "hrm.db")
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        # Employees table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS employees (
                 code TEXT PRIMARY KEY,
@@ -186,6 +193,32 @@ class HRPanel(QMainWindow):
             except:
                 pass
 
+        # Settings table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+
+    def load_settings(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT key, value FROM settings")
+        for key, value in cursor.fetchall():
+            if key == "company_name":
+                self.company_name = value
+            elif key == "panel_password":
+                self.panel_password = value
+        conn.close()
+
+    def save_setting(self, key, value):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
         conn.commit()
         conn.close()
 
@@ -217,6 +250,7 @@ class HRPanel(QMainWindow):
             self.existing_codes.add(row[0])
         conn.close()
         self.refresh_personnel_table()
+        self.update_dashboard()
 
     def save_employee_to_db(self, emp):
         conn = sqlite3.connect(self.db_path)
@@ -235,6 +269,7 @@ class HRPanel(QMainWindow):
         ))
         conn.commit()
         conn.close()
+        self.update_dashboard()
 
     def update_employee_in_db(self, emp):
         conn = sqlite3.connect(self.db_path)
@@ -254,6 +289,7 @@ class HRPanel(QMainWindow):
         ))
         conn.commit()
         conn.close()
+        self.update_dashboard()
 
     def delete_employee_from_db(self, code):
         conn = sqlite3.connect(self.db_path)
@@ -261,6 +297,7 @@ class HRPanel(QMainWindow):
         cursor.execute("DELETE FROM employees WHERE code = ?", (code,))
         conn.commit()
         conn.close()
+        self.update_dashboard()
 
     def init_ui(self):
         central = QWidget()
@@ -293,10 +330,10 @@ class HRPanel(QMainWindow):
         title_layout = QVBoxLayout()
         main_title = QLabel(MAIN_TITLE)
         main_title.setStyleSheet("color: white; font-size: 20px; font-weight: bold;")
-        company_label = QLabel(COMPANY_NAME)
-        company_label.setStyleSheet("color: #bae6fd; font-size: 13px;")
+        self.company_header_label = QLabel(self.company_name)
+        self.company_header_label.setStyleSheet("color: #bae6fd; font-size: 13px;")
         title_layout.addWidget(main_title)
-        title_layout.addWidget(company_label)
+        title_layout.addWidget(self.company_header_label)
         header_layout.addLayout(title_layout)
 
         header_layout.addStretch()
@@ -325,9 +362,11 @@ class HRPanel(QMainWindow):
         main_layout.addWidget(self.tabs)
 
         self.create_home_tab()
+        self.create_dashboard_tab()
         self.create_register_tab()
         self.create_list_tab()
         self.create_salary_tab()
+        self.create_settings_tab()
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.tabs.tabBar().hide()
@@ -398,6 +437,57 @@ class HRPanel(QMainWindow):
         layout.addWidget(btn)
 
         self.tabs.addTab(tab, "خانه")
+
+    def create_dashboard_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(30, 20, 30, 20)
+        layout.setSpacing(15)
+
+        title = QLabel("داشبورد مدیریت نیروی انسانی")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e40af;")
+        layout.addWidget(title)
+
+        # Company name
+        company_group = QGroupBox("نام شرکت / کارفرما")
+        company_layout = QVBoxLayout(company_group)
+        self.dashboard_company_label = QLabel(self.company_name)
+        self.dashboard_company_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #0f766e;")
+        company_layout.addWidget(self.dashboard_company_label)
+        layout.addWidget(company_group)
+
+        # Stats
+        stats_group = QGroupBox("آمار کلی")
+        stats_layout = QGridLayout(stats_group)
+
+        self.lbl_total_employees = QLabel("مجموع نیرو: 0")
+        self.lbl_total_employees.setStyleSheet("font-size: 16px; font-weight: bold;")
+
+        self.lbl_total_salary = QLabel("مجموع حقوق پایه پرداختی: 0 ریال")
+        self.lbl_total_salary.setStyleSheet("font-size: 16px; font-weight: bold;")
+
+        self.lbl_active = QLabel("نیروهای فعال: 0")
+        self.lbl_active.setStyleSheet("font-size: 15px; color: #059669;")
+
+        stats_layout.addWidget(self.lbl_total_employees, 0, 0)
+        stats_layout.addWidget(self.lbl_total_salary, 0, 1)
+        stats_layout.addWidget(self.lbl_active, 1, 0)
+
+        layout.addWidget(stats_group)
+        layout.addStretch()
+
+        self.tabs.addTab(tab, "داشبورد")
+
+    def update_dashboard(self):
+        if not hasattr(self, 'lbl_total_employees'):
+            return
+
+        total = len(self.employees)
+        total_salary = sum(emp.get('base_salary', 0) for emp in self.employees)
+
+        self.lbl_total_employees.setText(f"مجموع نیرو: {total}")
+        self.lbl_total_salary.setText(f"مجموع حقوق پایه پرداختی: {total_salary:,} ریال")
+        self.lbl_active.setText(f"نیروهای فعال: {total}  |  در مرخصی: 0")
 
     def create_register_tab(self):
         tab = QWidget()
@@ -560,13 +650,13 @@ class HRPanel(QMainWindow):
         layout.addWidget(title)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(9)
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
             "کد پرسنلی", "نام و نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)  # غیرقابل ویرایش توسط کاربر
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
 
         self.tabs.addTab(tab, "لیست نیروها")
@@ -579,28 +669,23 @@ class HRPanel(QMainWindow):
         for emp in self.employees:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            
-            # کد پرسنلی
+
             item = QTableWidgetItem(emp["code"])
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 0, item)
-            
-            # نام و نام خانوادگی
+
             item = QTableWidgetItem(emp["last_name"])
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 1, item)
-            
-            # کد ملی
+
             item = QTableWidgetItem(emp["national_id"])
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 2, item)
-            
-            # سمت
+
             item = QTableWidgetItem(emp.get("position", ""))
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 3, item)
-            
-            # حقوق پایه
+
             item = QTableWidgetItem(f"{emp.get('base_salary', 0):,}")
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 4, item)
@@ -611,7 +696,7 @@ class HRPanel(QMainWindow):
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 5, item)
 
-            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویرایش")
+            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویراگش")
             btn_edit.setFixedSize(75, 26)
             btn_edit.setIconSize(QSize(15, 15))
             btn_edit.clicked.connect(lambda checked, r=row: self.edit_employee(r))
@@ -625,54 +710,54 @@ class HRPanel(QMainWindow):
 
     def edit_employee(self, row):
         emp = self.employees[row]
-        
+
         dialog = QDialog(self)
-        dialog.setWindowTitle("ویرایش نیرو")
+        dialog.setWindowTitle("ویراگش نیرو")
         dialog.setMinimumWidth(450)
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        
+
         layout = QVBoxLayout(dialog)
-        
+
         form = QGridLayout()
-        
+
         form.addWidget(QLabel("نام خانوادگی:"), 0, 0)
         last_name_edit = QLineEdit(emp["last_name"])
         form.addWidget(last_name_edit, 0, 1)
-        
+
         form.addWidget(QLabel("کد ملی:"), 1, 0)
         national_id_edit = QLineEdit(emp["national_id"])
         national_id_edit.setMaxLength(10)
         form.addWidget(national_id_edit, 1, 1)
-        
+
         form.addWidget(QLabel("شماره شناسنامه:"), 2, 0)
         id_number_edit = QLineEdit(emp.get("id_number", ""))
         form.addWidget(id_number_edit, 2, 1)
-        
+
         form.addWidget(QLabel("سمت شغلی:"), 3, 0)
         position_edit = QLineEdit(emp.get("position", ""))
         form.addWidget(position_edit, 3, 1)
-        
+
         form.addWidget(QLabel("حقوق پایه (ریال):"), 4, 0)
         base_salary_edit = QLineEdit(str(emp.get("base_salary", 166255500)))
         form.addWidget(base_salary_edit, 4, 1)
-        
+
         form.addWidget(QLabel("وضعیت تاهل:"), 5, 0)
         marital_edit = QComboBox()
         marital_edit.addItems(["مجرد", "متاهل"])
         marital_edit.setCurrentText(emp.get("marital", "مجرد"))
         form.addWidget(marital_edit, 5, 1)
-        
+
         form.addWidget(QLabel("تعداد فرزند:"), 6, 0)
         children_edit = QSpinBox()
         children_edit.setRange(0, 12)
         children_edit.setValue(emp.get("children", 0))
         form.addWidget(children_edit, 6, 1)
-        
+
         layout.addLayout(form)
-        
+
         btn_save = QPushButton("ذخیره تغییرات")
         btn_save.clicked.connect(lambda: self.save_edited_employee(
-            dialog, emp, row, 
+            dialog, emp, row,
             last_name_edit.text().strip(),
             national_id_edit.text().strip(),
             id_number_edit.text().strip(),
@@ -682,20 +767,19 @@ class HRPanel(QMainWindow):
             children_edit.value()
         ))
         layout.addWidget(btn_save)
-        
+
         dialog.exec()
 
     def save_edited_employee(self, dialog, old_emp, row, last_name, national_id, id_number, position, base_salary_str, marital, children):
         if not last_name or not national_id:
             QMessageBox.warning(self, "خطا", "نام خانوادگی و کد ملی الزامی است")
             return
-            
+
         try:
             base_salary = int(base_salary_str.replace(",", ""))
         except:
             base_salary = old_emp.get("base_salary", 166255500)
 
-        # بروزرسانی در لیست
         old_emp["last_name"] = last_name
         old_emp["national_id"] = national_id
         old_emp["id_number"] = id_number
@@ -707,7 +791,7 @@ class HRPanel(QMainWindow):
         self.update_employee_in_db(old_emp)
         self.refresh_personnel_table()
         dialog.accept()
-        QMessageBox.information(self, "موفق", "اطلاعات با موفقیت ویرایش شد.")
+        QMessageBox.information(self, "موفق", "اطلاعات با موفقیت ویراگش شد.")
 
     def delete_employee(self, row):
         emp = self.employees[row]
@@ -717,7 +801,6 @@ class HRPanel(QMainWindow):
             del self.employees[row]
             self.refresh_personnel_table()
 
-    # ==================== تب جدید: محاسبه حقوق و فیش حقوقی ====================
     def create_salary_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
@@ -792,7 +875,6 @@ class HRPanel(QMainWindow):
         btn_calc.clicked.connect(self.calculate_salary_and_show_payslip)
         layout.addWidget(btn_calc)
 
-        # دکمه کپی نتایج
         btn_copy = QPushButton(qta.icon('fa5s.copy', color='white'), "کپی نتایج محاسبه")
         btn_copy.setStyleSheet("background-color: #64748b;")
         btn_copy.clicked.connect(self.copy_salary_results)
@@ -804,7 +886,7 @@ class HRPanel(QMainWindow):
         self.lbl_gross = QLabel("جمع ناخالص: -")
         self.lbl_insurance = QLabel("بیمه کارگر: -")
         self.lbl_net = QLabel("خالص دریافتی: -")
-        self.lbl_employer = QLabel("هزینه کارفرما: -")
+        self.lbl_employer = QLabel("هܱزینه کارفرما: -")
 
         for lbl in [self.lbl_gross, self.lbl_insurance, self.lbl_net, self.lbl_employer]:
             lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #1e40af;")
@@ -822,9 +904,9 @@ class HRPanel(QMainWindow):
         if not hasattr(self, 'last_calculation') or not self.last_calculation:
             QMessageBox.information(self, "اطلاع", "ابتدا محاسبه را انجام دهید")
             return
-            
+
         calc = self.last_calculation
-        text = f""""نتایج محاسبه حقوق - موسسه حقوقی آتیه مهر طوس
+        text = f"""نتایج محاسبه حقوق - {self.company_name}
 
 حقوق پایه: {calc['base']:,} ریال
 مزایای ثابت: {calc['benefits']:,} ریال
@@ -838,7 +920,7 @@ class HRPanel(QMainWindow):
 مالیات: {calc['tax']:,} ریال
 خالص دریافتی: {calc['net']:,} ریال
 
-هزینه کارفرما: {calc['employer_total']:,} ریال
+هܱزینه کارفرما: {calc['employer_total']:,} ریال
 """
         QApplication.clipboard().setText(text)
         QMessageBox.information(self, "کپی شد", "نتایج محاسبه در کلیپ‌برد کپی شد.")
@@ -905,7 +987,6 @@ class HRPanel(QMainWindow):
         unemp_ins = round_to_iranian_payroll(ins_base * 0.03)
         employer_total = round_to_iranian_payroll(base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay + holiday_pay + employer_ins + unemp_ins)
 
-        # ذخیره برای کپی
         self.last_calculation = {
             'base': base_pro_rata,
             'benefits': fixed_benefits,
@@ -923,7 +1004,7 @@ class HRPanel(QMainWindow):
         self.lbl_gross.setText(f"جمع ناخالص: {gross:,} ریال")
         self.lbl_insurance.setText(f"بیمه کارگر: {worker_ins:,} ریال")
         self.lbl_net.setText(f"خالص دریافتی: {net:,} ریال")
-        self.lbl_employer.setText(f"هزینه کارفرما: {employer_total:,} ریال")
+        self.lbl_employer.setText(f"هܱزینه کارفرما: {employer_total:,} ریال")
 
         self.show_payslip_dialog(
             base_pro_rata, housing, food, marriage, child_benefit,
@@ -967,7 +1048,7 @@ class HRPanel(QMainWindow):
             <tr style="font-weight:bold; color:#059669; font-size:14px;"><td>خالص دریافتی نهایی</td><td align="left">{net:,} ریال</td></tr>
         </table>
         <hr>
-        <p style="color:#1e40af; font-weight:bold;">هزینه کارفرما: {employer_total:,} ریال</p>
+        <p style="color:#1e40af; font-weight:bold;">هܱزینه کارفرما: {employer_total:,} ریال</p>
         <p style="font-size:10px; color:#64748b; text-align:center;">این فیش حقوقی بر اساس قوانین کار و تامین اجتماعی ۱۴۰۵ تولید شده است.<br>
         مشاوره رایگان: ٠۹۱۵۸۱۵۳۵۳۰</p>
         """
@@ -980,6 +1061,96 @@ class HRPanel(QMainWindow):
         layout.addWidget(btn_close)
 
         dialog.exec()
+
+    def create_settings_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(30, 20, 30, 20)
+        layout.setSpacing(15)
+
+        title = QLabel("تنظیمات پنل")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e40af;")
+        layout.addWidget(title)
+
+        # Company Name
+        company_group = QGroupBox("نام شرکت / کارفرما ( برای هدر )")
+        company_layout = QHBoxLayout(company_group)
+        self.settings_company_input = QLineEdit(self.company_name)
+        btn_save_company = QPushButton("ذخیره نام شرکت")
+        btn_save_company.clicked.connect(self.save_company_name)
+        company_layout.addWidget(self.settings_company_input)
+        company_layout.addWidget(btn_save_company)
+        layout.addWidget(company_group)
+
+        # Password
+        pass_group = QGroupBox("تغییر رمز ورود به پنل")
+        pass_layout = QGridLayout(pass_group)
+
+        pass_layout.addWidget(QLabel("رمز جدید:"), 0, 0)
+        self.new_password_input = QLineEdit()
+        self.new_password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        pass_layout.addWidget(self.new_password_input, 0, 1)
+
+        btn_change_pass = QPushButton("تغییر رمز")
+        btn_change_pass.clicked.connect(self.change_password)
+        pass_layout.addWidget(btn_change_pass, 0, 2)
+
+        layout.addWidget(pass_group)
+
+        # Backup
+        backup_group = QGroupBox("بکاپ‌گیری اطلاعات")
+        backup_layout = QVBoxLayout(backup_group)
+
+        btn_backup = QPushButton(qta.icon('fa5s.download', color='white'), " بکاپ‌گیری اطلاعات نیروها و تنظیمات")
+        btn_backup.setStyleSheet("background-color: #0f766e; padding: 10px;")
+        btn_backup.clicked.connect(self.backup_data)
+        backup_layout.addWidget(btn_backup)
+
+        layout.addWidget(backup_group)
+        layout.addStretch()
+
+        self.tabs.addTab(tab, "تنظیمات")
+
+    def save_company_name(self):
+        new_name = self.settings_company_input.text().strip()
+        if not new_name:
+            QMessageBox.warning(self, "خطا", "نام شرکت نمی‌تواند خالی باشد")
+            return
+
+        self.company_name = new_name
+        self.company_header_label.setText(new_name)
+        self.dashboard_company_label.setText(new_name)
+        self.save_setting("company_name", new_name)
+        QMessageBox.information(self, "ذخیره شد", "نام شرکت با موفقیت ذخیره شد.")
+
+    def change_password(self):
+        new_pass = self.new_password_input.text().strip()
+        if not new_pass:
+            QMessageBox.warning(self, "خطا", "رمز نمی‌تواند خالی باشد")
+            return
+
+        self.panel_password = new_pass
+        self.save_setting("panel_password", new_pass)
+        self.new_password_input.clear()
+        QMessageBox.information(self, "موفق", "رمز با موفقیت تغییر کرد شد.")
+
+    def backup_data(self):
+        folder = QFileDialog.getExistingDirectory(self, "انتخاب پوشه برای بکاپ‌گیری")
+        if not folder:
+            return
+
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        safe_company = self.company_name.replace(" ", "").replace("/", "").replace("-", "")
+        filename = f"{safe_company}_{timestamp}.db"
+        backup_path = os.path.join(folder, filename)
+
+        try:
+            import shutil
+            shutil.copy2(self.db_path, backup_path)
+            QMessageBox.information(self, "بکاپ موفق", f"بکاپ با موفقیت در این آدرس ذخیره شد:\n{backup_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"بکاپ ناموفق:\n{str(e)}")
 
     def apply_styles(self):
         self.setStyleSheet("""
