@@ -326,7 +326,7 @@ class HRPanel(QMainWindow):
 
     def update_header_date(self):
         jdate = jdatetime.datetime.now()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
                           "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
         weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
         weekday_name = weekdays[jdate.weekday()]
@@ -394,7 +394,7 @@ class HRPanel(QMainWindow):
         grid.setHorizontalSpacing(15)
         grid.setVerticalSpacing(10)
 
-        grid.addWidget(QLabel("نام خانوادگی:"), 0, 0)
+        grid.addWidget(QLabel("نام خانواحگی:"), 0, 0)
         self.last_name = QLineEdit()
         grid.addWidget(self.last_name, 0, 1)
 
@@ -429,7 +429,7 @@ class HRPanel(QMainWindow):
         self.emp_day.setValue(1)
 
         self.emp_month = QComboBox()
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
                           "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
         self.emp_month.addItems(persian_months)
         current_jdate = jdatetime.datetime.now()
@@ -553,7 +553,7 @@ class HRPanel(QMainWindow):
 
     def refresh_personnel_table(self):
         self.table.setRowCount(0)
-        persian_months = ["فروردین", "اردبهشت", "خرداح", "تیر", "مرداد", "شهریور",
+        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
                           "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
 
         for emp in self.employees:
@@ -569,7 +569,7 @@ class HRPanel(QMainWindow):
             emp_date = f"{emp.get('employment_day', '')} {persian_months[month_idx-1]} {emp.get('employment_year', '')}"
             self.table.setItem(row, 5, QTableWidgetItem(emp_date))
 
-            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویرایش")
+            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویراگش")
             btn_edit.setFixedSize(75, 26)
             btn_edit.setIconSize(QSize(15, 15))
             btn_edit.clicked.connect(lambda checked, r=row: self.edit_employee(r))
@@ -583,7 +583,7 @@ class HRPanel(QMainWindow):
 
     def edit_employee(self, row):
         emp = self.employees[row]
-        QMessageBox.information(self, "ویرایش", f"ویرایش {emp['last_name']}\n(در مرحله بعدی کامل می‌شود)")
+        QMessageBox.information(self, "ویراگش", f"ویراگش {emp['last_name']}\n(در مرحله بعدی کامل می‌شود)")
 
     def delete_employee(self, row):
         emp = self.employees[row]
@@ -638,7 +638,14 @@ class HRPanel(QMainWindow):
 
         grid.addWidget(QLabel("شیفت کاری:"), 2, 2)
         self.sal_shift = QComboBox()
-        self.sal_shift.addItems(["عادی", "شبکاری ۳۵۰", "صبح/عصر ۱۰۰", "سه شیفت ۱۵۰"])
+        self.sal_shift.addItems([
+            "بدون شیفت (0%)",
+            "شیفت صبح و عصر (10%)",
+            "شیفت صبح، عصر و شب (15%)",
+            "شیفت صبح و شب (22.5%)",
+            "شیفت عصر و شب (22.5%)",
+            "شبکاری ثابت (35%)"
+        ])
         grid.addWidget(self.sal_shift, 2, 3)
 
         grid.addWidget(QLabel("سال استخدام (برای سنوات):"), 3, 0)
@@ -705,13 +712,17 @@ class HRPanel(QMainWindow):
 
         ot_pay = ot_hours * d["overtime_hourly"]
 
+        # به‌روز شده طبق درخواست کاربر
         shift_rate = 0
-        if "شبکاری" in shift_text:
-            shift_rate = 0.35
-        elif "صبح/عصر" in shift_text:
+        if "شیفت صبح و عصر" in shift_text:
             shift_rate = 0.10
-        elif "سه شیفت" in shift_text:
+        elif "شیفت صبح، عصر و شب" in shift_text:
             shift_rate = 0.15
+        elif "شیفت صبح و شب" in shift_text or "شیفت عصر و شب" in shift_text:
+            shift_rate = 0.225
+        elif "شبکاری ثابت" in shift_text:
+            shift_rate = 0.35
+
         shift_pay = base_pro_rata * shift_rate
 
         gross = base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay
@@ -737,12 +748,12 @@ class HRPanel(QMainWindow):
         self.show_payslip_dialog(
             base_pro_rata, fixed_benefits, ot_pay, seniority_pay, shift_pay,
             gross, worker_ins, tax, net, employer_ins, unemp_ins, employer_total,
-            days, children, is_married, years
+            days, children, is_married, years, shift_text
         )
 
-    def show_payslip_dialog(self, base, benefits, ot, sen, shift,
+    def show_payslip_dialog(self, base, benefits, ot, sen, shift_pay,
                            gross, worker_ins, tax, net, emp_ins, unemp, employer_total,
-                           days, children, married, years):
+                           days, children, married, years, shift_text):
         dialog = QDialog(self)
         dialog.setWindowTitle("فیش حقوقی ماهانه - آتیه مهر طوس")
         dialog.setMinimumSize(650, 520)
@@ -763,7 +774,7 @@ class HRPanel(QMainWindow):
             <tr><td><b>مزایای ثابت</b></td><td align="left">{benefits:,} ریال</td></tr>
             <tr><td><b>اضافه‌کاری</b></td><td align="left">{ot:,} ریال</td></tr>
             <tr><td><b>پایه سنوات ({years} سال)</b></td><td align="left">{sen:,} ریال</td></tr>
-            <tr><td><b>مزایای شیفت</b></td><td align="left">{shift:,} ریال</td></tr>
+            <tr><td><b>مزایای شیفت</b> ({shift_text})</td><td align="left">{shift_pay:,} ریال</td></tr>
             <tr style="font-weight:bold; color:#0f766e;"><td>جمع ناخالص</td><td align="left">{gross:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>بیمه کارگر (7%)</td><td align="left">-{worker_ins:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>مالیات</td><td align="left">-{tax:,} ریال</td></tr>
