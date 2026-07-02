@@ -16,7 +16,7 @@ from PySide6.QtCore import Qt, QTimer, QRectF, QSize
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
 
 # ==================== تنظیمات قابل ویراگش ====================
-COMPANY_NAME = "مجموعه / شرکت شما"
+COMPANY_NAME = "موسسه حقوقی آتیه مهر طوس"
 MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهر طوس"
 # ========================================================
 
@@ -236,6 +236,25 @@ class HRPanel(QMainWindow):
         conn.commit()
         conn.close()
 
+    def update_employee_in_db(self, emp):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE employees SET 
+                last_name = ?, national_id = ?, id_number = ?, position = ?, 
+                base_salary = ?, marital = ?, children = ?, 
+                employment_year = ?, employment_month = ?, employment_day = ?
+            WHERE code = ?
+        """, (
+            emp["last_name"], emp["national_id"], emp.get("id_number", ""),
+            emp.get("position", ""), emp.get("base_salary", 166255500),
+            emp.get("marital", ""), emp.get("children", 0),
+            emp.get("employment_year"), emp.get("employment_month"), emp.get("employment_day"),
+            emp["code"]
+        ))
+        conn.commit()
+        conn.close()
+
     def delete_employee_from_db(self, code):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -326,8 +345,8 @@ class HRPanel(QMainWindow):
 
     def update_header_date(self):
         jdate = jdatetime.datetime.now()
-        persian_months = ["فروردین", "ارحبهشت", "خرداد", "تیر", "مرداد", "شهعریور",
-                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+        persian_months = ["فروردین", "ارحبهشت", "خرحاد", "تیر", "مرداد", "شهعریور",
+                          "مهر", "آبان", "آذر", "دی", "بهمن", "اسخنح"]
         weekdays = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
         weekday_name = weekdays[jdate.weekday()]
         self.date_label.setText(f"امروز {weekday_name} {jdate.day} {persian_months[jdate.month-1]} {jdate.year} می‌باشد")
@@ -394,7 +413,7 @@ class HRPanel(QMainWindow):
         grid.setHorizontalSpacing(15)
         grid.setVerticalSpacing(10)
 
-        grid.addWidget(QLabel("نام خانواحگی:"), 0, 0)
+        grid.addWidget(QLabel("نام خانوادگی:"), 0, 0)
         self.last_name = QLineEdit()
         grid.addWidget(self.last_name, 0, 1)
 
@@ -483,11 +502,11 @@ class HRPanel(QMainWindow):
         code = self.personnel_code.text().strip()
 
         if not last_name or not national_id or not code:
-            QMessageBox.warning(self, "خطا", "نام خانواحگی و کد ملی الزامی است")
+            QMessageBox.warning(self, "خطا", "نام خانوادگی و کد ملی الزامی است")
             return
 
         if not national_id.isdigit() or len(national_id) != 10:
-            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشح")
+            QMessageBox.warning(self, "خطا", "کد ملی باید دقیقاً ۱۰ رقم باشد")
             return
 
         if any(emp["national_id"] == national_id for emp in self.employees):
@@ -541,12 +560,13 @@ class HRPanel(QMainWindow):
         layout.addWidget(title)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(9)
         self.table.setHorizontalHeaderLabels([
-            "کد پرسنلی", "نام خانواحگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویراگش", "حذف"
+            "کد پرسنلی", "نام و نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)  # غیرقابل ویرایش توسط کاربر
         layout.addWidget(self.table)
 
         self.tabs.addTab(tab, "لیست نیروها")
@@ -559,17 +579,39 @@ class HRPanel(QMainWindow):
         for emp in self.employees:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(emp["code"]))
-            self.table.setItem(row, 1, QTableWidgetItem(emp["last_name"]))
-            self.table.setItem(row, 2, QTableWidgetItem(emp["national_id"]))
-            self.table.setItem(row, 3, QTableWidgetItem(emp.get("position", "")))
-            self.table.setItem(row, 4, QTableWidgetItem(f"{emp.get('base_salary', 0):,}"))
+            
+            # کد پرسنلی
+            item = QTableWidgetItem(emp["code"])
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 0, item)
+            
+            # نام و نام خانوادگی
+            item = QTableWidgetItem(emp["last_name"])
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 1, item)
+            
+            # کد ملی
+            item = QTableWidgetItem(emp["national_id"])
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 2, item)
+            
+            # سمت
+            item = QTableWidgetItem(emp.get("position", ""))
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 3, item)
+            
+            # حقوق پایه
+            item = QTableWidgetItem(f"{emp.get('base_salary', 0):,}")
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 4, item)
 
             month_idx = emp.get('employment_month') or 1
             emp_date = f"{emp.get('employment_day', '')} {persian_months[month_idx-1]} {emp.get('employment_year', '')}"
-            self.table.setItem(row, 5, QTableWidgetItem(emp_date))
+            item = QTableWidgetItem(emp_date)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(row, 5, item)
 
-            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویراگش")
+            btn_edit = QPushButton(qta.icon('fa5s.edit', color='#1e40af'), "ویرایش")
             btn_edit.setFixedSize(75, 26)
             btn_edit.setIconSize(QSize(15, 15))
             btn_edit.clicked.connect(lambda checked, r=row: self.edit_employee(r))
@@ -583,7 +625,89 @@ class HRPanel(QMainWindow):
 
     def edit_employee(self, row):
         emp = self.employees[row]
-        QMessageBox.information(self, "ویراگش", f"ویراگش {emp['last_name']}\n(در مرحله بعحدی کامل می‌شود)")
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("ویرایش نیرو")
+        dialog.setMinimumWidth(450)
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        
+        layout = QVBoxLayout(dialog)
+        
+        form = QGridLayout()
+        
+        form.addWidget(QLabel("نام خانوادگی:"), 0, 0)
+        last_name_edit = QLineEdit(emp["last_name"])
+        form.addWidget(last_name_edit, 0, 1)
+        
+        form.addWidget(QLabel("کد ملی:"), 1, 0)
+        national_id_edit = QLineEdit(emp["national_id"])
+        national_id_edit.setMaxLength(10)
+        form.addWidget(national_id_edit, 1, 1)
+        
+        form.addWidget(QLabel("شماره شناسنامه:"), 2, 0)
+        id_number_edit = QLineEdit(emp.get("id_number", ""))
+        form.addWidget(id_number_edit, 2, 1)
+        
+        form.addWidget(QLabel("سمت شغلی:"), 3, 0)
+        position_edit = QLineEdit(emp.get("position", ""))
+        form.addWidget(position_edit, 3, 1)
+        
+        form.addWidget(QLabel("حقوق پایه (ریال):"), 4, 0)
+        base_salary_edit = QLineEdit(str(emp.get("base_salary", 166255500)))
+        form.addWidget(base_salary_edit, 4, 1)
+        
+        form.addWidget(QLabel("وضعیت تاهل:"), 5, 0)
+        marital_edit = QComboBox()
+        marital_edit.addItems(["مجرد", "متاهل"])
+        marital_edit.setCurrentText(emp.get("marital", "مجرد"))
+        form.addWidget(marital_edit, 5, 1)
+        
+        form.addWidget(QLabel("تعداد فرزند:"), 6, 0)
+        children_edit = QSpinBox()
+        children_edit.setRange(0, 12)
+        children_edit.setValue(emp.get("children", 0))
+        form.addWidget(children_edit, 6, 1)
+        
+        layout.addLayout(form)
+        
+        btn_save = QPushButton("ذخیره تغییرات")
+        btn_save.clicked.connect(lambda: self.save_edited_employee(
+            dialog, emp, row, 
+            last_name_edit.text().strip(),
+            national_id_edit.text().strip(),
+            id_number_edit.text().strip(),
+            position_edit.text().strip(),
+            base_salary_edit.text(),
+            marital_edit.currentText(),
+            children_edit.value()
+        ))
+        layout.addWidget(btn_save)
+        
+        dialog.exec()
+
+    def save_edited_employee(self, dialog, old_emp, row, last_name, national_id, id_number, position, base_salary_str, marital, children):
+        if not last_name or not national_id:
+            QMessageBox.warning(self, "خطا", "نام خانوادگی و کد ملی الزامی است")
+            return
+            
+        try:
+            base_salary = int(base_salary_str.replace(",", ""))
+        except:
+            base_salary = old_emp.get("base_salary", 166255500)
+
+        # بروزرسانی در لیست
+        old_emp["last_name"] = last_name
+        old_emp["national_id"] = national_id
+        old_emp["id_number"] = id_number
+        old_emp["position"] = position
+        old_emp["base_salary"] = base_salary
+        old_emp["marital"] = marital
+        old_emp["children"] = children
+
+        self.update_employee_in_db(old_emp)
+        self.refresh_personnel_table()
+        dialog.accept()
+        QMessageBox.information(self, "موفق", "اطلاعات با موفقیت ویرایش شد.")
 
     def delete_employee(self, row):
         emp = self.employees[row]
@@ -648,7 +772,6 @@ class HRPanel(QMainWindow):
         ])
         grid.addWidget(self.sal_shift, 2, 3)
 
-        # فیلد جدید: روزهای کار در تعطیلات
         grid.addWidget(QLabel("روزهای کار در تعطیلات (جمعه/رسمی):"), 3, 2)
         self.sal_holiday_days = QSpinBox()
         self.sal_holiday_days.setRange(0, 10)
@@ -669,6 +792,12 @@ class HRPanel(QMainWindow):
         btn_calc.clicked.connect(self.calculate_salary_and_show_payslip)
         layout.addWidget(btn_calc)
 
+        # دکمه کپی نتایج
+        btn_copy = QPushButton(qta.icon('fa5s.copy', color='white'), "کپی نتایج محاسبه")
+        btn_copy.setStyleSheet("background-color: #64748b;")
+        btn_copy.clicked.connect(self.copy_salary_results)
+        layout.addWidget(btn_copy)
+
         result_group = QGroupBox("نتایج محاسبه")
         res_layout = QGridLayout(result_group)
 
@@ -688,6 +817,31 @@ class HRPanel(QMainWindow):
         layout.addWidget(result_group)
 
         self.tabs.addTab(tab, "محاسبه حقوق و فیش")
+
+    def copy_salary_results(self):
+        if not hasattr(self, 'last_calculation') or not self.last_calculation:
+            QMessageBox.information(self, "اطلاع", "ابتدا محاسبه را انجام دهید")
+            return
+            
+        calc = self.last_calculation
+        text = f""""نتایج محاسبه حقوق - موسسه حقوقی آتیه مهر طوس
+
+حقوق پایه: {calc['base']:,} ریال
+مزایای ثابت: {calc['benefits']:,} ریال
+اضافه‌کاری: {calc['ot']:,} ریال
+پایه سنوات: {calc['sen']:,} ریال
+مزایای شیفت: {calc['shift_pay']:,} ریال
+تعطیلات کاری: {calc.get('holiday_pay', 0):,} ریال
+
+جمع ناخالص: {calc['gross']:,} ریال
+بیمه کارگر: {calc['worker_ins']:,} ریال
+مالیات: {calc['tax']:,} ریال
+خالص دریافتی: {calc['net']:,} ریال
+
+هزینه کارفرما: {calc['employer_total']:,} ریال
+"""
+        QApplication.clipboard().setText(text)
+        QMessageBox.information(self, "کپی شد", "نتایج محاسبه در کلیپ‌برد کپی شد.")
 
     def calculate_salary_and_show_payslip(self):
         try:
@@ -720,7 +874,6 @@ class HRPanel(QMainWindow):
 
         ot_pay = ot_hours * d["overtime_hourly"]
 
-        # شیفت کاری
         shift_rate = 0
         if "شیفت صبح و عصر" in shift_text:
             shift_rate = 0.10
@@ -733,7 +886,6 @@ class HRPanel(QMainWindow):
 
         shift_pay = base_pro_rata * shift_rate
 
-        # تعطیلات کاری (40%)
         effective_daily = daily + daily_seniority
         holiday_pay = holiday_days * effective_daily * 1.4
         holiday_pay = round_to_iranian_payroll(holiday_pay)
@@ -753,23 +905,40 @@ class HRPanel(QMainWindow):
         unemp_ins = round_to_iranian_payroll(ins_base * 0.03)
         employer_total = round_to_iranian_payroll(base_pro_rata + fixed_benefits + ot_pay + seniority_pay + shift_pay + holiday_pay + employer_ins + unemp_ins)
 
+        # ذخیره برای کپی
+        self.last_calculation = {
+            'base': base_pro_rata,
+            'benefits': fixed_benefits,
+            'ot': ot_pay,
+            'sen': seniority_pay,
+            'shift_pay': shift_pay,
+            'holiday_pay': holiday_pay,
+            'gross': gross,
+            'worker_ins': worker_ins,
+            'tax': tax,
+            'net': net,
+            'employer_total': employer_total
+        }
+
         self.lbl_gross.setText(f"جمع ناخالص: {gross:,} ریال")
         self.lbl_insurance.setText(f"بیمه کارگر: {worker_ins:,} ریال")
         self.lbl_net.setText(f"خالص دریافتی: {net:,} ریال")
         self.lbl_employer.setText(f"هزینه کارفرما: {employer_total:,} ریال")
 
         self.show_payslip_dialog(
-            base_pro_rata, fixed_benefits, ot_pay, seniority_pay, shift_pay, holiday_pay,
+            base_pro_rata, housing, food, marriage, child_benefit,
+            ot_pay, seniority_pay, shift_pay, holiday_pay,
             gross, worker_ins, tax, net, employer_ins, unemp_ins, employer_total,
             days, holiday_days, children, is_married, years, shift_text
         )
 
-    def show_payslip_dialog(self, base, benefits, ot, sen, shift_pay, holiday_pay,
+    def show_payslip_dialog(self, base, housing, food, marriage, child_benefit,
+                           ot, sen, shift_pay, holiday_pay,
                            gross, worker_ins, tax, net, emp_ins, unemp, employer_total,
                            days, holiday_days, children, married, years, shift_text):
         dialog = QDialog(self)
-        dialog.setWindowTitle("فیش حقوقی ماهانه - آتیه مهر طوس")
-        dialog.setMinimumSize(650, 520)
+        dialog.setWindowTitle("فیش حقوقی ماهانه - آتیه مهܱ طوس")
+        dialog.setMinimumSize(680, 580)
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         layout = QVBoxLayout(dialog)
@@ -784,12 +953,15 @@ class HRPanel(QMainWindow):
         <hr>
         <table width="100%" style="font-size:12px;">
             <tr><td><b>حقوق پایه</b></td><td align="left">{base:,} ریال</td></tr>
-            <tr><td><b>مزایای ثابت</b></td><td align="left">{benefits:,} ریال</td></tr>
+            <tr><td><b>حق مسکن</b></td><td align="left">{housing:,} ریال</td></tr>
+            <tr><td><b>حق بن و خواربار</b></td><td align="left">{food:,} ریال</td></tr>
+            <tr><td><b>حق تاهل</b></td><td align="left">{marriage:,} ریال</td></tr>
+            <tr><td><b>حق اولاد</b> ({children} فرزند)</td><td align="left">{child_benefit:,} ریال</td></tr>
             <tr><td><b>اضافه‌کاری</b></td><td align="left">{ot:,} ریال</td></tr>
-            <tr><td><b>پایه سنوات ({years} سال)</b></td><td align="left">{sen:,} ریال</td></tr>
-            <tr><td><b>مزایای شیفت</b> ({shift_text})</td><td align="left">{shift_pay:,} ریال</td></tr>
-            <tr><td><b>تعطیلات کاری (40%)</b> ({holiday_days} روز)</td><td align="left">{holiday_pay:,} ریال</td></tr>
-            <tr style="font-weight:bold; color:#0f766e;"><td>جمع ناخالص</td><td align="left">{gross:,} ریال</td></tr>
+            <tr><td><b>پایه سنوات</b> ({years} سال)</td><td align="left">{sen:,} ریال</td></tr>
+            <tr><td><b>مزایای شیفت</b></td><td align="left">{shift_pay:,} ریال</td></tr>
+            <tr><td><b>تعطیلات کاری (40%)</b></td><td align="left">{holiday_pay:,} ریال</td></tr>
+            <tr style="font-weight:bold; color:#0f766e; font-size:13px;"><td>جمع ناخالص</td><td align="left">{gross:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>بیمه کارگر (7%)</td><td align="left">-{worker_ins:,} ریال</td></tr>
             <tr style="color:#dc2626;"><td>مالیات</td><td align="left">-{tax:,} ریال</td></tr>
             <tr style="font-weight:bold; color:#059669; font-size:14px;"><td>خالص دریافتی نهایی</td><td align="left">{net:,} ریال</td></tr>
