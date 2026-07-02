@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QRectF, QSize
 from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap, QTextDocument, QTextCursor
 
-# ==================== تنظیمات قابل ویرایش ====================
+# ==================== تنظیمات قابل ویراگش ====================
 COMPANY_NAME = "مجموعه / شرکت شما"
 MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهر طوس"
 # ========================================================
@@ -346,7 +346,7 @@ class HRPanel(QMainWindow):
             logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(logo_label)
 
-        desc = QLabel("تنظیم قراردادهای کار، پیمانکاری و مشاوره\nقبول نمایندگی در هیئت‌های تشخیص و حل اختلاف اداره کار و تامین اجتماعی")
+        desc = QLabel("تنظیم قراردادهای کار، پیمانکاری و مشاوره\nقبول نمایندگی در هیئت‌های تسخیص و حل اختلاف اداره کار و تامین اجتماعی")
         desc.setStyleSheet("font-size: 15px; color: #334155; line-height: 1.6;")
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc.setWordWrap(True)
@@ -440,9 +440,9 @@ class HRPanel(QMainWindow):
         self.emp_year.setValue(current_jdate.year)
 
         date_layout.addWidget(self.emp_day)
-        date_layout.add(QLabel("/"))
+        date_layout.addWidget(QLabel("/"))
         date_layout.addWidget(self.emp_month)
-        date_layout.add(QLabel("/"))
+        date_layout.addWidget(QLabel("/"))
         date_layout.addWidget(self.emp_year)
         grid.addLayout(date_layout, 3, 1)
 
@@ -483,7 +483,7 @@ class HRPanel(QMainWindow):
         code = self.personnel_code.text().strip()
 
         if not last_name or not national_id or not code:
-            QMessageBox.warning(self, "خطا", "نام خانوادگی و کد ملی الزامی است")
+            QMessageBox.warning(self, "خطا", "نام خانواحگی و کد ملی الزامی است")
             return
 
         if not national_id.isdigit() or len(national_id) != 10:
@@ -543,7 +543,7 @@ class HRPanel(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "کد پرسنلی", "نام خانوادگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
+            "کد پرسنلی", "نام خانواحگی", "کد ملی", "سمت", "حقوق پایه", "تاریخ استخدام", "ویرایش", "حذف"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
@@ -553,7 +553,7 @@ class HRPanel(QMainWindow):
 
     def refresh_personnel_table(self):
         self.table.setRowCount(0)
-        persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        persian_months = ["فروردین", "اردبهشت", "خرداح", "تیر", "مرداد", "شهریور",
                           "مهر", "آبان", "آذر", "دی", "بهمن", "اسخند"]
 
         for emp in self.employees:
@@ -772,7 +772,7 @@ class HRPanel(QMainWindow):
         <hr>
         <p style="color:#1e40af; font-weight:bold;">هزینه کارفرما: {employer_total:,} ریال</p>
         <p style="font-size:10px; color:#64748b; text-align:center;">این فیش حقوقی بر اساس قوانین کار و تامین اجتماعی ۱۴۰۵ تولید شده است.<br>
-        مشاوره رایگان: ٠٩١٥٨١٥٣٥۳۰</p>
+        مشاوره رایگان: ٠۹۱۵۸۱۵۳۵۳۰</p>
         """
 
         text.setHtml(html)
