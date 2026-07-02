@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محاسبه‌گر حقوق و دستمزد ماهانه | ۱۴۰۵</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&family=Inter:wght@400;500;600&display=swap');
+        
+        :root {
+            --primary: #0f766e;
+        }
+        
+        body {
+            font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
+        }
+        
+        .persian-number {
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .section-header {
+            background: linear-gradient(to left, #0f766e, #134e4b);
+            color: white;
+        }
+        
+        .result-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .money {
+            font-family: 'Vazirmatn', monospace;
+            font-feature-settings: "ss02";
+        }
+        
+        .calc-input {
+            transition: all 0.2s ease;
+        }
+        
+        .calc-input:focus {
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+            border-color: #0f766e;
+        }
+        
+        .detail-row {
+            transition: background-color 0.2s;
+        }
+        
+        .detail-row:hover {
+            background-color: #f8fafc;
+        }
+        
+        .nav-active {
+            background-color: #0f766e;
+            color: white;
+            border-radius: 9999px;
+        }
+        
+        .stat-value {
+            font-size: 1.35rem;
+            line-height: 1.1;
+            font-weight: 700;
+        }
+        
+        .rtl-grid {
+            direction: rtl;
+        }
+        
+        .modern-shadow {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+        }
+        
+        .metric-label {
+            font-size: 0.75rem;
+            letter-spacing: -.025em;
+        }
+
+        /* Protection CSS */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        input, textarea, select, button {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        /* Print Styles - Compact A4 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .xl\:col-span-7, .xl\:col-span-7 * {
+                visibility: visible;
+            }
+            .xl\:col-span-7 {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            
+            /* Hide employer cost section in print */
+            .xl\:col-span-7 tr:has(td:contains("هزینه کارفرما")) {
+                display: none !important;
+            }
+            
+            /* Make table more compact */
+            .xl\:col-span-7 table {
+                font-size: 11px !important;
+            }
+            
+            .xl\:col-span-7 .detail-row {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 select-none">
+
+<!-- Protection Script (Disable right click + DevTools shortcuts) -->
+<script>
+(function() {
+    'use strict';
+    
+    // Disable right click completely (no alert)
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    }, true);
+
+    // Disable text selection (already in CSS but reinforced)
+    document.addEventListener('selectstart', function(e) {
+        e.preventDefault();
+        return false;
+    }, true);
+
+    // Disable common DevTools and save shortcuts
+    document.addEventListener('keydown', function(e) {
+        // F12
+        if (e.key === 'F12') {
+            e.preventDefault();
+            return false;
+        }
+        // Ctrl + Shift + I / J / C
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+            e.preventDefault();
+            return false;
+        }
+        // Ctrl + U (View Source)
+        if (e.ctrlKey && e.key.toLowerCase() === 'u') {
+            e.preventDefault();
+            return false;
+        }
+        // Ctrl + S (Save)
+        if (e.ctrlKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            return false;
+        }
+        // Ctrl + Shift + K (Firefox console)
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            return false;
+        }
+    }, true);
+
+    // Extra protection against opening DevTools via menu
+    setInterval(function() {
+        const devtools = /./;
+        devtools.toString = function() {
+            this.opened = true;
+        };
+    }, 1000);
+})();
+</script>
+    <!-- Header -->
+    <div class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-screen-2xl mx-auto">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-x-4">
+                    <img src="logo.png" alt="لوگو موسسه حقوقی آتیه مهر طوس" class="w-14 h-14 rounded-2xl object-contain border border-slate-200" onerror="this.style.display='none'">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">موسسه حقوقی آتیه مهر طوس</h1>
+                        <p class="text-sm text-teal-700 font-medium -mt-0.5">محاسبه‌گر حقوق و دستمزد ۱۴۰۵</p>
+                        <div class="flex items-center gap-x-3 text-xs text-slate-500 mt-0.5">
+                            <span><i class="fa-solid fa-phone fa-xs mr-1"></i> ۰۹۱۵۱۱۵۳۷۹۸</span>
+                            <span><i class="fa-solid fa-phone fa-xs mr-1"></i> ۰۹۱۵۸۱۵۳۵۳۰</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-x-3">
+                    <div class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full flex items-center gap-x-1.5">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>به‌روز تا ۱۴۰۵</span>
+                    </div>
+                    <button onclick="resetToDefault()" 
+                            class="flex items-center gap-x-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-2xl transition-colors">
+                        <i class="fa-solid fa-undo text-xs"></i>
+                        <span>بازنشانی</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-screen-2xl mx-auto px-6 pt-6 pb-12">
+        
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-3xl p-4 border border-slate-100 modern-shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="metric-label text-slate-500">حداقل حقوق ماهانه ۱۴۰۵</div>
+                        <div id="quickBase" class="stat-value text-teal-700 mt-1 persian-number">۱۶۶،۲۵۵،۵۰۰</div>
+                        <div class="text-[10px] text-slate-400">ریال</div>
+                    </div>
+                    <i class="fa-solid fa-wallet text-teal-600/30 text-3xl mt-1"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl p-4 border border-slate-100 modern-shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="metric-label text-slate-500">حق مسکن ۱۴۰۵</div>
+                        <div class="stat-value text-teal-700 mt-1 persian-number">۳۰،۰۰۰،۰۰۰</div>
+                        <div class="text-[10px] text-emerald-600">+ ۲۱ میلیون نسبت به ۱۴۰۴</div>
+                    </div>
+                    <i class="fa-solid fa-home text-teal-600/30 text-3xl mt-1"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl p-4 border border-slate-100 modern-shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="metric-label text-slate-500">حداکثر مشمول بیمه</div>
+                        <div class="stat-value text-teal-700 mt-1 persian-number">۱،۱۶۳،۷۸۸،۴۱۶</div>
+                        <div class="text-[10px] text-slate-400">۷ برابر حداقل</div>
+                    </div>
+                    <i class="fa-solid fa-shield-halved text-teal-600/30 text-3xl mt-1"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl p-4 border border-slate-100 modern-shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="metric-label text-slate-500">نرخ اضافه‌کاری</div>
+                        <div class="stat-value text-teal-700 mt-1">۱۷۴ برابر</div>
+                        <div class="text-[10px] text-slate-400">ساعتی</div>
+                    </div>
+                    <i class="fa-solid fa-clock text-teal-600/30 text-3xl mt-1"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            
+            <!-- INPUT PANEL -->
+            <div class="xl:col-span-5 bg-white rounded-3xl border border-slate-200 modern-shadow overflow-hidden">
+                <div class="section-header px-6 py-4 flex items-center gap-x-3">
+                    <i class="fa-solid fa-sliders-h text-xl"></i>
+                    <div>
+                        <span class="font-semibold text-lg">ورودی‌های محاسبه</span>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    
+                    <!-- Year & Base -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-2 tracking-wider">سال محاسبه</label>
+                        <div class="flex gap-2">
+                            <button onclick="switchYear('1405')" id="btn1405"
+                                    class="flex-1 py-2.5 text-sm font-medium border border-teal-700 bg-teal-700 text-white rounded-2xl active:scale-[0.985] transition-all">
+                                ۱۴۰۵ (جاری)
+                            </button>
+                            <button onclick="switchYear('1404')" id="btn1404"
+                                    class="flex-1 py-2.5 text-sm font-medium border border-slate-300 hover:bg-slate-50 text-slate-600 rounded-2xl active:scale-[0.985] transition-all">
+                                ۱۴۰۴
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold text-slate-500 tracking-wider">حقوق پایه ماهانه (ریال)</label>
+                            <button onclick="useMinimumBase()" 
+                                    class="text-[10px] px-2.5 py-0.5 bg-teal-100 hover:bg-teal-200 text-teal-700 rounded-xl font-medium flex items-center gap-x-1 transition-colors">
+                                <i class="fa-solid fa-sync text-[9px]"></i>
+                                <span>حداقل قانونی</span>
+                            </button>
+                        </div>
+                        <input type="text" id="baseInput" value="166255488" 
+                               class="calc-input w-full px-4 py-3 text-lg font-semibold border border-slate-300 focus:border-teal-600 rounded-2xl text-left tracking-tighter"
+                               oninput="formatInput(this)">
+                        <div id="baseNote" class="text-[10px] text-emerald-600 mt-1 flex items-center gap-x-1">
+                            <i class="fa-solid fa-info-circle"></i>
+                            <span>حداقل دستمزد مصوب ۱۴۰۵</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Unified Work Details Block -->
+                    <div class="pt-3 border-t border-slate-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-semibold text-slate-500 tracking-wider flex items-center gap-x-2">
+                                <i class="fa-solid fa-calendar-check text-teal-600"></i>
+                                <span>محاسبه روزهای کاری و ساعات موظفی ماه (بر اساس تقویم)</span>
+                            </label>
+                            <span class="text-[9px] px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-xl font-medium">جدید و دقیق‌تر</span>
+                        </div>
+                        
+                        <!-- Calendar inputs -->
+                        <div class="grid grid-cols-3 gap-3 mb-3">
+                            <div>
+                                <label class="block text-[10px] font-medium text-slate-600 mb-1">روزهای ماه</label>
+                                <input type="number" id="monthDays" value="30" min="28" max="31" step="1"
+                                       class="calc-input w-full px-3 py-2.5 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-base font-semibold"
+                                       oninput="updateWorkingDaysLive()">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-medium text-slate-600 mb-1">تعداد جمعه‌ها</label>
+                                <input type="number" id="fridayCount" value="4" min="0" max="6" step="1"
+                                       class="calc-input w-full px-3 py-2.5 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-base font-semibold"
+                                       oninput="updateWorkingDaysLive()">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-medium text-slate-600 mb-1">تعطیلات رسمی</label>
+                                <input type="number" id="holidayCount" value="0" min="0" max="15" step="1"
+                                       class="calc-input w-full px-3 py-2.5 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-base font-semibold"
+                                       oninput="updateWorkingDaysLive()">
+                            </div>
+                        </div>
+                        
+                        <!-- Live results -->
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5 text-sm">
+                                <div class="flex items-baseline justify-between">
+                                    <div>
+                                        <div class="text-emerald-600 text-xs font-semibold">روزهای کاری ماه</div>
+                                        <div id="workingDaysLive" class="font-extrabold text-emerald-700 text-2xl tabular-nums persian-number">26</div>
+                                    </div>
+                                    <i class="fa-solid fa-calendar-day text-emerald-300 text-2xl mt-1"></i>
+                                </div>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5 text-sm">
+                                <div class="flex items-baseline justify-between">
+                                    <div>
+                                        <div class="text-emerald-600 text-xs font-semibold">ساعت موظفی (گرد شده)</div>
+                                        <div id="mandatoryHoursLive" class="font-extrabold text-emerald-700 text-2xl tabular-nums persian-number">191</div>
+                                    </div>
+                                    <i class="fa-solid fa-hourglass-half text-emerald-300 text-2xl mt-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Actual hours + auto OT note -->
+                        <div class="mb-3">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wider">ساعت کارکرد واقعی (مجموع ساعات حضور در ماه)</label>
+                            <div class="relative">
+                                <input type="number" id="actualHoursWorked" value="0" min="0" step="0.5"
+                                       class="calc-input w-full px-4 py-3 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-lg font-semibold"
+                                       oninput="updateOvertimeLive()">
+                                <div class="absolute left-4 top-1/2 -mt-2 text-[10px] text-slate-400">ساعت</div>
+                            </div>
+                            <div id="hoursComparisonNote" class="text-[10px] mt-1 min-h-[20px] text-emerald-600"></div>
+                        </div>
+                        
+                        <!-- Moved fields: Holiday work + Shift + Seniority -->
+                        <div class="pt-3 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Friday/Holiday work premium -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wider">روزهای کار در تعطیلات (جمعه/رسمی)</label>
+                                <div class="relative">
+                                    <input type="number" id="fridayDays" value="0" min="0" step="1"
+                                           class="calc-input w-full px-4 py-2.5 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-base font-semibold">
+                                    <div class="absolute left-4 top-1/2 -mt-2 text-[10px] text-slate-400">روز</div>
+                                </div>
+                                <div class="text-[10px] text-amber-600 mt-0.5">نرخ مازاد: ۴۰۰</div>
+                            </div>
+                            
+                            <!-- Shift -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wider">نوع شیفت کاری</label>
+                                <select id="shiftType" onchange="updateShiftInfo()"
+                                        class="calc-input w-full px-4 py-[10px] border border-slate-300 focus:border-teal-600 rounded-2xl text-sm font-medium bg-white">
+                                    <option value="none">بدون شیفت (عادی)</option>
+                                    <option value="shabkari">شبکاری ثابت (۳۵۰)</option>
+                                    <option value="sobh_asr">شیفت صبح و عصر (۱۰۰)</option>
+                                    <option value="sobh_asr_shab">صبح + عصر + شب (۱۵۰)</option>
+                                    <option value="sobh_shab">صبح و شب یا عصر و شب (۲۲۷۵۰)</option>
+                                </select>
+                                <div id="shiftInfo" class="text-[10px] text-teal-600 mt-0.5 h-4"></div>
+                            </div>
+                            
+                            <!-- Seniority (full width) -->
+                            <div class="md:col-span-2 pt-2 border-t border-slate-100">
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wider flex items-center gap-x-2">
+                                    <i class="fa-solid fa-user-clock text-teal-600"></i>
+                                    <span>سال استخدام (برای محاسبه پایه سنوات)</span>
+                                </label>
+                                <div class="flex gap-3 items-end">
+                                    <div class="flex-1">
+                                        <input type="number" id="employmentYear" value="1398" min="1370" max="1405" step="1"
+                                               class="calc-input w-full px-4 py-2.5 border border-slate-300 focus:border-teal-600 rounded-2xl text-center text-base font-semibold"
+                                               oninput="updateSeniorityLive()">
+                                    </div>
+                                    <div id="seniorityLiveBox" 
+                                         class="flex-1 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2 text-sm">
+                                        <div class="text-emerald-700 font-medium" id="seniorityYearsText">سابقه: - سال</div>
+                                        <div class="text-emerald-800 font-bold text-base mt-0.5" id="seniorityAmountText">پایه سنوات: -</div>
+                                    </div>
+                                </div>
+                                <div class="text-[10px] text-slate-500 mt-1">مبلغ روزانه × روزهای کارکرد (طبق جدول تجمیعی ۱۴۰۵)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Benefits -->
+                    <div class="pt-2 border-t border-slate-100">
+                        <div class="text-xs font-semibold text-slate-500 mb-3 tracking-wider flex items-center gap-x-2">
+                            <span>مزایا و کمک‌هزینه‌های قانونی</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <!-- Children -->
+                            <div class="flex items-center justify-between bg-slate-50 rounded-2xl px-4 py-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-child text-teal-600 w-4"></i>
+                                    <div>
+                                        <div class="text-sm font-medium">تعداد فرزندان مشمول</div>
+                                        <div class="text-[10px] text-slate-500">هر فرزند = ۱۰۰ حداقل حقوق</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-2">
+                                    <button onclick="changeChildren(-1)" class="w-8 h-8 flex items-center justify-center border border-slate-300 hover:bg-white active:bg-slate-100 rounded-xl text-lg leading-none">-</button>
+                                    <input type="number" id="numChildren" value="0" min="0" max="10" 
+                                           class="w-14 text-center font-semibold border border-slate-300 rounded-xl py-1 text-sm" onchange="updateChildNote()">
+                                    <button onclick="changeChildren(1)" class="w-8 h-8 flex items-center justify-center border border-slate-300 hover:bg-white active:bg-slate-100 rounded-xl text-lg leading-none">+</button>
+                                </div>
+                            </div>
+                            
+                            <div id="childNote" class="hidden text-[10px] bg-amber-50 text-amber-700 px-3 py-1.5 rounded-2xl">
+                                <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                                حق اولاد مشروط به پرداخت حداقل ۷۲۰ روز حق بیمه توسط کارفرما
+                            </div>
+                            
+                            <!-- Marriage -->
+                            <div class="flex items-center justify-between bg-slate-50 rounded-2xl px-4 py-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-ring text-teal-600 w-4"></i>
+                                    <div class="text-sm font-medium">حق تاهل (۵ میلیون ریال)</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="isMarried" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-700"></div>
+                                </label>
+                            </div>
+                            
+                            <!-- Full benefits -->
+                            <div class="flex items-center justify-between bg-slate-50 rounded-2xl px-4 py-3">
+                                <div>
+                                    <div class="text-sm font-medium">پرداخت کامل مزایای ثابت</div>
+                                    <div class="text-[10px] text-slate-500">مسکن، بن، تاهل و اولاد (حتی در ماه ناقص)</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="fullBenefits" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-700"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- بخش مرجع روزانه (تأثیر در محاسبات ندارد) -->
+                    <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs">
+                        <div class="font-semibold text-slate-600 mb-1.5">نرخ‌های روزانه مرجع (فقط برای اطلاع)</div>
+                        <div id="dailyRatesBox" class="grid grid-cols-3 gap-x-2 text-[11px] text-slate-700">
+                            <!-- پر شده توسط JS -->
+                        </div>
+                    </div>
+                    
+                    <button onclick="calculateSalary()" 
+                            class="w-full mt-2 bg-teal-700 hover:bg-teal-800 active:bg-teal-900 transition-all text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-x-3 text-base shadow-lg shadow-teal-700/30">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>محاسبه حقوق و مزایای ماهانه</span>
+                    </button>
+                    
+                </div>
+            </div>
+            
+            <!-- RESULTS -->
+            <div class="xl:col-span-7 space-y-6">
+                
+                <!-- Worker Net Card -->
+                <div class="result-card bg-white border border-emerald-200 rounded-3xl overflow-hidden modern-shadow">
+                    <div class="bg-emerald-700 px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-x-3 text-white">
+                            <i class="fa-solid fa-user-check text-xl"></i>
+                            <div>
+                                <span class="font-bold text-lg">دریافتی خالص کارگر</span>
+                            </div>
+                        </div>
+                        <div id="netWorker" class="text-3xl font-extrabold text-white tracking-tighter persian-number">۰</div>
+                    </div>
+                    
+                    <div class="p-5 grid grid-cols-2 gap-x-6 text-sm">
+                        <div>
+                            <div class="text-emerald-600 text-xs font-semibold mb-1">جمع ناخالص</div>
+                            <div id="grossWorker" class="font-bold text-xl text-emerald-800 persian-number">۰ ریال</div>
+                        </div>
+                        <div>
+                            <div class="text-emerald-600 text-xs font-semibold mb-1">کسر بیمه کارگر (۷۰)</div>
+                            <div id="workerIns" class="font-bold text-xl text-emerald-800 persian-number">۰ ریال</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Employer Cost Card -->
+                <div class="result-card bg-white border border-blue-200 rounded-3xl overflow-hidden modern-shadow">
+                    <div class="bg-blue-700 px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-x-3 text-white">
+                            <i class="fa-solid fa-building text-xl"></i>
+                            <div>
+                                <span class="font-bold text-lg">هزینه تمام‌شده کارفرما</span>
+                            </div>
+                        </div>
+                        <div id="totalEmployer" class="text-3xl font-extrabold text-white tracking-tighter persian-number">۰</div>
+                    </div>
+                    
+                    <div class="p-5 grid grid-cols-3 gap-x-4 text-sm">
+                        <div>
+                            <div class="text-blue-600 text-xs font-semibold mb-1">حقوق + مزایا</div>
+                            <div id="employerBaseBenefits" class="font-bold text-lg text-blue-800 persian-number">۰</div>
+                        </div>
+                        <div>
+                            <div class="text-blue-600 text-xs font-semibold mb-1">بیمه کارفرما (۲۰۰)</div>
+                            <div id="employerIns" class="font-bold text-lg text-blue-800 persian-number">۰</div>
+                        </div>
+                        <div>
+                            <div class="text-blue-600 text-xs font-semibold mb-1">بیمه بیکاری (۳۰)</div>
+                            <div id="unempIns" class="font-bold text-lg text-blue-800 persian-number">۰</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Breakdown -->
+                <div class="bg-white rounded-3xl border border-slate-200 modern-shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b flex items-center justify-between bg-slate-50">
+                        <div class="font-semibold flex items-center gap-x-2 text-slate-700">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>جزئیات کامل محاسبه</span>
+                        </div>
+                        <div class="flex items-center gap-x-2">
+                            <button onclick="copyResults()" 
+                                    class="text-xs flex items-center gap-x-1.5 px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl text-slate-600">
+                                <i class="fa-solid fa-copy text-xs"></i>
+                                <span>کپی</span>
+                            </button>
+                            <button onclick="printResults()" 
+                                    class="text-xs flex items-center gap-x-1.5 px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl text-slate-600">
+                                <i class="fa-solid fa-print text-xs"></i>
+                                <span>چاپ</span>
+                            </button>
+                            <button onclick="showPayslip()" 
+                                    class="text-xs flex items-center gap-x-1.5 px-4 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-medium transition-colors">
+                                <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
+                                <span>فیش حقوقی</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-2">
+                        <table class="w-full text-sm" id="detailTable">
+                            <thead>
+                                <tr class="text-xs text-slate-500 border-b">
+                                    <th class="text-right py-2.5 px-4 font-normal">شرح</th>
+                                    <th class="text-left py-2.5 px-4 font-normal w-40">مبلغ (ریال)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailBody" class="text-slate-700 divide-y text-[13px]">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="px-5 py-3 bg-slate-50 text-[10px] text-slate-500 flex items-start gap-x-2 border-t">
+                        <i class="fa-solid fa-info-circle mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            بیمه بر اساس پایه + اضافه‌کاری + شیفت + جمعه‌کاری محاسبه شده است. مزایای ثابت (مسکن، بن، اولاد، تاهل) معمولاً مشمول بیمه کامل نیستند یا طبق بخشنامه خاص محاسبه می‌شوند.
+                            <span class="font-medium text-teal-700">برای دقت بیشتر در پرونده‌های واقعی، به جدول رسمی و مشاوره حقوقی مراجعه کنید.</span>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <footer class="text-center text-[10px] text-slate-500 pb-8 px-4 leading-relaxed">
+        این ابزار کمکی است و جایگزین مشاوره حقوقی یا حسابداری رسمی نمی‌باشد.<br>
+        جهت مشاوره رایگان با شماره <span class="font-semibold text-teal-700">۰۹۱۵۸۱۵۳۵۳۰</span> تماس بگیرید.<br>
+        <span class="text-slate-400">تمامی حقوق این نرم‌افزار متعلق به <strong>موسسه حقوقی آتیه مهر طوس</strong> می‌باشد.</span>
+    </footer>
+
+    <!-- Payslip Modal -->
+    <div id="payslipModal" class="hidden fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-[820px] w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b flex items-center justify-between bg-gradient-to-l from-emerald-700 to-teal-700 text-white">
+                <div class="flex items-center gap-x-3">
+                    <i class="fa-solid fa-file-invoice text-2xl"></i>
+                    <div>
+                        <div class="font-bold text-xl">فیش حقوقی ماهانه</div>
+                        <div class="text-emerald-100 text-sm">موسسه حقوقی آتیه مهر طوس — سال <span id="payslipYear"></span></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-x-2">
+                    <button onclick="printPayslip()" 
+                            class="flex items-center gap-x-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-2xl text-sm font-medium transition-colors">
+                        <i class="fa-solid fa-print"></i>
+                        <span>چاپ فیش</span>
+                    </button>
+                    <button onclick="closePayslipModal()" 
+                            class="w-9 h-9 flex items-center justify-center hover:bg-white/20 rounded-2xl transition-colors">
+                        <i class="fa-solid fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Payslip Content -->
+            <div id="payslipContent" class="p-6 overflow-auto flex-1 bg-[#f8fafc]" style="font-family: 'Vazirmatn', system-ui;">
+                <!-- Dynamically filled by JS -->
+            </div>
+
+            <div class="px-6 py-4 border-t bg-white flex items-center justify-between text-xs text-slate-500">
+                <div>این فیش حقوقی بر اساس محاسبه‌گر آتیه مهر طوس تولید شده است.</div>
+                <div class="font-medium text-emerald-700">۰۹۱۵۸۱۵۳۵۳۰</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tailwind script
+        function initTailwind() {
+            document.documentElement.style.setProperty('--accent', '#0f766e');
+        }
+        
+        // Data from Excel + user update for 1405
+        const salaryData = {
+            "1405": {
+                base: 166255500,
+                daily: 5541850,
+                hourly: 755707.5,
+                overtimeHourly: 1057990,
+                childOne: 16625550,
+                food: 22000000,
+                housing: 30000000,
+                marriage: 5000000,
+                maxInsurable: 1163788500,
+                dailySeniority: 166667
+            },
+            "1404": {
+                base: 103909680,
+                daily: 3463656,
+                hourly: 472316.9419622463,
+                overtimeHourly: 661243.7187471448,
+                childOne: 10390968,
+                food: 22000000,
+                housing: 9000000,
+                marriage: 5000000,
+                maxInsurable: 727367760,
+                dailySeniority: 94000     // حق سنوات روزانه ۱۴۰۴
+            }
+        };
+        
+        let currentYear = "1405";
+        let lastCalculation = null; // Store last calculation result for payslip
+
+        // جدول پایه سنوات تجمیعی ۱۴۰۵ (از فایل رسمی)
+        const seniorityTable1405 = {
+            0: 0, 1: 166667, 2: 302967, 3: 436947, 4: 600403, 5: 798184,
+            6: 980142, 7: 1143906, 8: 1275733, 9: 1384264, 10: 1504088,
+            11: 1583025, 12: 1673014, 13: 1725660, 14: 1761041, 15: 1793472,
+            16: 1821234, 17: 1850658, 18: 1870336, 19: 1890997, 20: 1912693,
+            21: 1936558, 22: 1957976, 23: 1976879, 24: 1991789, 25: 2004572,
+            26: 2015417, 27: 2024591, 28: 2030201, 29: 2034946, 30: 2039736
+        };
+        
+        function formatRial(num) {
+            if (!num || isNaN(num)) return "۰";
+            return new Intl.NumberFormat('fa-IR').format(Math.round(num));
+        }
+        
+        function formatDaily(num) {
+            if (!num || isNaN(num)) return "۰";
+            const hasFraction = Math.abs(num % 1) > 0.0001;
+            return new Intl.NumberFormat('fa-IR', {
+                minimumFractionDigits: hasFraction ? 1 : 0,
+                maximumFractionDigits: 1
+            }).format(num);
+        }
+        
+        /**
+         * گرد کردن مبالغ طبق عرف رایج حقوق و دستمزد ایران
+         */
+        function roundToIranianPayroll(amount) {
+            if (!amount || isNaN(amount)) return 0;
+            const whole = Math.floor(amount / 100) * 100;
+            const remainder = amount - whole;
+            
+            if (remainder <= 25) {
+                return whole;
+            } else if (remainder <= 75) {
+                return whole + 50;
+            } else {
+                return whole + 100;
+            }
+        }
+        
+        /**
+         * محاسبه مالیات بر درآمد حقوق (پله‌ای) طبق بخشنامه جدید
+         */
+        function calculateIncomeTax(taxableRials) {
+            if (!taxableRials || taxableRials <= 0) return 0;
+            
+            const brackets = [
+                { upTo: 400000000, rate: 0.00 },
+                { upTo: 800000000, rate: 0.10 },
+                { upTo: 1000000000, rate: 0.15 },
+                { upTo: 1200000000, rate: 0.20 },
+                { upTo: 1400000000, rate: 0.25 },
+                { upTo: Infinity, rate: 0.30 }
+            ];
+            
+            let tax = 0;
+            let previousLimit = 0;
+            
+            for (const bracket of brackets) {
+                if (taxableRials > previousLimit) {
+                    const taxableInThisBracket = Math.min(taxableRials, bracket.upTo) - previousLimit;
+                    tax += taxableInThisBracket * bracket.rate;
+                    previousLimit = bracket.upTo;
+                }
+            }
+            return Math.round(tax);
+        }
+        
+        function formatInput(input) {
+            let val = input.value.replace(/[^0-9]/g, '');
+            if (val) {
+                input.value = parseInt(val).toLocaleString('en-US');
+            }
+        }
+        
+        function parseInputValue(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            let val = el.value.replace(/,/g, '');
+            return parseFloat(val) || 0;
+        }
+        
+        function switchYear(year) {
+            currentYear = year;
+            
+            document.getElementById('btn1405').classList.toggle('bg-teal-700', year === '1405');
+            document.getElementById('btn1405').classList.toggle('text-white', year === '1405');
+            document.getElementById('btn1405').classList.toggle('border-teal-700', year === '1405');
+            document.getElementById('btn1405').classList.toggle('border-slate-300', year !== '1405');
+            document.getElementById('btn1405').classList.toggle('text-slate-600', year !== '1405');
+            
+            document.getElementById('btn1404').classList.toggle('bg-teal-700', year === '1404');
+            document.getElementById('btn1404').classList.toggle('text-white', year === '1404');
+            document.getElementById('btn1404').classList.toggle('border-teal-700', year === '1404');
+            document.getElementById('btn1404').classList.toggle('border-slate-300', year !== '1404');
+            document.getElementById('btn1404').classList.toggle('text-slate-600', year !== '1404');
+            
+            const d = salaryData[year];
+            document.getElementById('baseInput').value = d.base.toLocaleString('en-US');
+            document.getElementById('quickBase').innerHTML = formatRial(d.base);
+            
+            const note = document.getElementById('baseNote');
+            if (year === '1405') {
+                note.innerHTML = `<i class="fa-solid fa-info-circle"></i> <span>حداقل دستمزد مصوب ۱۴۰۵</span>`;
+                note.className = "text-[10px] text-emerald-600 mt-1 flex items-center gap-x-1";
+            } else {
+                note.innerHTML = `<i class="fa-solid fa-info-circle"></i> <span>حداقل دستمزد مصوب ۱۴۰۴</span>`;
+                note.className = "text-[10px] text-amber-600 mt-1 flex items-center gap-x-1";
+            }
+
+            setTimeout(() => {
+                if (typeof updateSeniorityLive === 'function') updateSeniorityLive();
+            }, 50);
+            
+            clearResults();
+        }
+        
+        function useMinimumBase() {
+            const d = salaryData[currentYear];
+            document.getElementById('baseInput').value = d.base.toLocaleString('en-US');
+        }
+        
+        function changeChildren(delta) {
+            const input = document.getElementById('numChildren');
+            let val = parseInt(input.value) || 0;
+            val = Math.max(0, Math.min(10, val + delta));
+            input.value = val;
+            updateChildNote();
+        }
+        
+        function updateChildNote() {
+            const note = document.getElementById('childNote');
+            const val = parseInt(document.getElementById('numChildren').value) || 0;
+            if (val > 0) {
+                note.classList.remove('hidden');
+                note.classList.add('flex');
+            } else {
+                note.classList.add('hidden');
+                note.classList.remove('flex');
+            }
+        }
+        
+        function updateShiftInfo() {
+            const select = document.getElementById('shiftType').value;
+            const info = document.getElementById('shiftInfo');
+            
+            const rates = {
+                'none': '',
+                'shabkari': '۳۵۰ مازاد بر دستمزد روزانه (شیفت شب ثابت)',
+                'sobh_asr': '۱۰۰ مازاد — شیفت صبح و عصر',
+                'sobh_asr_shab': '۱۵۰ مازاد — سه شیفت',
+                'sobh_shab': '۲۲۷۵۰ مازاد — دو شیفت ترکیبی'
+            };
+            
+            info.innerHTML = rates[select] || '';
+            info.style.color = select === 'none' ? '#64748b' : '#0f766e';
+        }
+
+        function updateSeniorityLive() {
+            const empYearEl = document.getElementById('employmentYear');
+            if (!empYearEl) return;
+
+            const empYear = parseInt(empYearEl.value) || 1405;
+            const cy = parseInt(currentYear);
+            let years = Math.max(0, Math.min(30, cy - empYear));
+
+            const box = document.getElementById('seniorityLiveBox');
+            const yearsText = document.getElementById('seniorityYearsText');
+            const amountText = document.getElementById('seniorityAmountText');
+
+            if (!box || !yearsText || !amountText) return;
+
+            yearsText.innerHTML = `سابقه: <span class="font-bold">${years}</span> سال`;
+
+            const amount = seniorityTable1405[years] || 0;
+            if (amount > 0) {
+                amountText.innerHTML = `روزانه: <span class="font-bold">${formatRial(amount)}</span> ریال`;
+                box.className = 'flex-1 bg-emerald-50 border border-emerald-300 rounded-2xl px-4 py-2 text-sm';
+            } else {
+                amountText.innerHTML = `پایه سنوات: <span class="text-slate-400">فاقد سابقه</span>`;
+                box.className = 'flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm';
+            }
+        }
+        
+        function updateWorkingDaysLive() {
+            const monthDaysEl = document.getElementById('monthDays');
+            const fridayCountEl = document.getElementById('fridayCount');
+            const holidayCountEl = document.getElementById('holidayCount');
+            const wdEl = document.getElementById('workingDaysLive');
+            const mhEl = document.getElementById('mandatoryHoursLive');
+            
+            if (!monthDaysEl || !fridayCountEl || !holidayCountEl || !wdEl || !mhEl) return;
+            
+            const m = parseInt(monthDaysEl.value) || 30;
+            const f = parseInt(fridayCountEl.value) || 0;
+            const h = parseInt(holidayCountEl.value) || 0;
+            
+            const wd = Math.max(0, m - f - h);
+            const mh = Math.round(wd * 7.33);
+            
+            wdEl.innerHTML = `${wd} <span class="text-base font-medium">روز</span>`;
+            mhEl.innerHTML = `${mh} <span class="text-base font-medium">ساعت</span>`;
+            
+            updateOvertimeLive();
+        }
+        
+        function updateOvertimeLive() {
+            const actualEl = document.getElementById('actualHoursWorked');
+            const noteEl = document.getElementById('hoursComparisonNote');
+            const monthDaysEl = document.getElementById('monthDays');
+            const fridayCountEl = document.getElementById('fridayCount');
+            const holidayCountEl = document.getElementById('holidayCount');
+            
+            if (!actualEl || !noteEl || !monthDaysEl || !fridayCountEl || !holidayCountEl) return;
+            
+            const actual = parseFloat(actualEl.value) || 0;
+            if (actual <= 0) {
+                noteEl.innerHTML = '';
+                return;
+            }
+            
+            const m = parseInt(monthDaysEl.value) || 30;
+            const f = parseInt(fridayCountEl.value) || 0;
+            const h = parseInt(holidayCountEl.value) || 0;
+            const wd = Math.max(0, m - f - h);
+            const mandH = wd * 7.33;
+            
+            if (actual >= mandH - 0.05) {
+                const ot = Math.round(actual - mandH);
+                if (ot > 0) {
+                    noteEl.innerHTML = `<i class="fa-solid fa-arrow-up mr-1"></i> اضافه‌کاری خودکار: <span class="font-bold">${ot}</span> ساعت (پایه حقوق کامل پرداخت می‌شود)`;
+                    noteEl.className = 'text-[10px] mt-1 text-emerald-600 font-medium';
+                } else {
+                    noteEl.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ساعت کارکرد برابر موظفی → <span class="font-bold">پایه کامل</span>`;
+                    noteEl.className = 'text-[10px] mt-1 text-emerald-600 font-medium';
+                }
+            } else {
+                const shortH = (mandH - actual).toFixed(1);
+                const shortD = (parseFloat(shortH) / 7.33).toFixed(1);
+                const refDays = parseInt(document.getElementById('monthDays')?.value) || 30;
+                const effDays = (refDays - parseFloat(shortD)).toFixed(1);
+                noteEl.innerHTML = `<i class="fa-solid fa-arrow-down mr-1"></i> کسری: <span class="font-bold">${shortD}</span> روز → پایه بر اساس <span class="font-bold">${effDays}</span> روز از <span class="font-bold">${refDays}</span> روز`;
+                noteEl.className = 'text-[10px] mt-1 text-amber-600 font-medium';
+            }
+        }
+        
+        function calculateSalary() {
+            const year = currentYear;
+            const d = salaryData[year];
+            
+            let baseMonthly = parseInputValue('baseInput') || d.base;
+            const fridayDays = parseFloat(document.getElementById('fridayDays').value) || 0;
+            const shiftType = document.getElementById('shiftType').value;
+            const numChildren = parseInt(document.getElementById('numChildren').value) || 0;
+            const isMarried = document.getElementById('isMarried').checked;
+            const fullBenefits = document.getElementById('fullBenefits').checked;
+            
+            // Auto logic
+            const monthDaysRef = parseInt(document.getElementById('monthDays')?.value) || 30;
+            let daysWorked = monthDaysRef;
+            let overtimeHours = 0;
+
+            const actualH = parseFloat(document.getElementById('actualHoursWorked')?.value) || 0;
+            if (actualH > 0) {
+                const mDays = monthDaysRef;
+                const friC = parseInt(document.getElementById('fridayCount')?.value) || 0;
+                const holC = parseInt(document.getElementById('holidayCount')?.value) || 0;
+                const workD = Math.max(0, mDays - friC - holC);
+                const mandH = workD * 7.33;
+
+                if (actualH >= mandH - 0.1) {
+                    daysWorked = monthDaysRef;
+                    overtimeHours = Math.round(actualH - mandH);
+                } else {
+                    const shortfallH = mandH - actualH;
+                    const shortfallD = shortfallH / 7.33;
+                    daysWorked = Math.max(0, monthDaysRef - shortfallD);
+                    overtimeHours = 0;
+                }
+            }
+            
+            // Base salary logic
+            const officialDaily = d.daily;
+            const officialMinimum = d.base;
+            
+            let baseProRata;
+            let baseCalculationNote = '';
+            
+            if (baseMonthly === officialMinimum) {
+                baseProRata = roundToIranianPayroll(officialDaily * daysWorked);
+                baseCalculationNote = `${daysWorked} روز × ${formatDaily(officialDaily)}`;
+            } else {
+                baseProRata = roundToIranianPayroll(baseMonthly);
+                baseCalculationNote = 'مبلغ ثابت ماهانه (بالاتر از حداقل دستمزد)';
+            }
+            
+            // Benefits
+            let housingPay = d.housing;
+            let foodPay = d.food;
+            let marriagePay = isMarried ? d.marriage : 0;
+            let childPay = (numChildren > 0) ? numChildren * d.childOne : 0;
+
+            if (!fullBenefits && daysWorked < monthDaysRef) {
+                const ratio = daysWorked / monthDaysRef;
+                housingPay *= ratio;
+                foodPay *= ratio;
+                marriagePay *= ratio;
+                childPay *= ratio;
+            }
+
+            const fixedBenefits = housingPay + foodPay + marriagePay + childPay;
+            const childBenefit = childPay;
+
+            // Seniority
+            let seniorityPay = 0;
+            let yearsOfService = 0;
+            const empYearInput = document.getElementById('employmentYear');
+            if (empYearInput) {
+                const empYear = parseInt(empYearInput.value) || currentYear;
+                yearsOfService = Math.max(0, Math.min(30, parseInt(currentYear) - empYear));
+                const dailySeniority = seniorityTable1405[yearsOfService] || 0;
+                seniorityPay = roundToIranianPayroll(dailySeniority * daysWorked);
+            }
+            
+            // Overtime
+            let effectiveOvertimeHourly = d.overtimeHourly;
+            if (yearsOfService > 0) {
+                const dailySeniority = seniorityTable1405[yearsOfService] || 0;
+                const effectiveDaily = d.daily + dailySeniority;
+                effectiveOvertimeHourly = effectiveDaily * (d.overtimeHourly / d.daily);
+            }
+            const overtimePay = overtimeHours * effectiveOvertimeHourly;
+            
+            // Friday work
+            let fridayPay = 0;
+            if (fridayDays > 0) {
+                const dailySeniority = seniorityTable1405[yearsOfService] || 0;
+                const effectiveDaily = d.daily + dailySeniority;
+                fridayPay = fridayDays * effectiveDaily * 1.4;
+            }
+            
+            // Shift
+            let shiftExtraRate = 0;
+            if (shiftType === 'shabkari') shiftExtraRate = 0.35;
+            else if (shiftType === 'sobh_asr') shiftExtraRate = 0.10;
+            else if (shiftType === 'sobh_asr_shab') shiftExtraRate = 0.15;
+            else if (shiftType === 'sobh_shab') shiftExtraRate = 0.225;
+            
+            const shiftPay = baseProRata * shiftExtraRate;
+            
+            // Totals
+            const grossPayRaw = baseProRata + fixedBenefits + overtimePay + fridayPay + shiftPay + seniorityPay;
+            const grossPay = roundToIranianPayroll(grossPayRaw);
+            
+            let insurableBase = baseProRata + housingPay + foodPay + overtimePay + fridayPay + shiftPay + seniorityPay;
+            if (insurableBase > d.maxInsurable) insurableBase = d.maxInsurable;
+            
+            const workerInsuranceRaw = insurableBase * 0.07;
+            const workerInsurance = roundToIranianPayroll(workerInsuranceRaw);
+            
+            // Tax
+            const taxableIncome = grossPay - workerInsurance;
+            const incomeTax = calculateIncomeTax(taxableIncome);
+            const netPayBeforeTax = grossPay - workerInsurance;
+            const finalNetPay = netPayBeforeTax - incomeTax;
+            
+            // Employer
+            const employerInsuranceRaw = insurableBase * 0.20;
+            const employerInsurance = roundToIranianPayroll(employerInsuranceRaw);
+            const unemploymentInsuranceRaw = insurableBase * 0.03;
+            const unemploymentInsurance = roundToIranianPayroll(unemploymentInsuranceRaw);
+            
+            const totalEmployerRaw = baseProRata + fixedBenefits + overtimePay + fridayPay + shiftPay + employerInsurance + unemploymentInsurance;
+            const totalEmployer = roundToIranianPayroll(totalEmployerRaw);
+            
+            // Update UI
+            document.getElementById('netWorker').innerHTML = formatRial(finalNetPay) + ' <span class="text-base font-normal">ریال</span>';
+            document.getElementById('grossWorker').innerHTML = formatRial(grossPay) + ' ریال';
+            document.getElementById('workerIns').innerHTML = formatRial(workerInsurance) + ' ریال';
+            
+            document.getElementById('totalEmployer').innerHTML = formatRial(totalEmployer) + ' <span class="text-base font-normal">ریال</span>';
+            document.getElementById('employerBaseBenefits').innerHTML = formatRial(baseProRata + fixedBenefits + overtimePay + fridayPay + shiftPay);
+            document.getElementById('employerIns').innerHTML = formatRial(employerInsurance);
+            document.getElementById('unempIns').innerHTML = formatRial(unemploymentInsurance);
+            
+            // Store for payslip
+            lastCalculation = {
+                year,
+                baseProRata,
+                baseCalculationNote,
+                housingPay,
+                foodPay,
+                marriagePay,
+                childBenefit,
+                numChildren,
+                overtimePay,
+                effectiveOvertimeHourly,
+                fridayPay,
+                shiftPay,
+                shiftExtraRate,
+                seniorityPay,
+                yearsOfService,
+                grossPay,
+                workerInsurance,
+                incomeTax,
+                netPayBeforeTax,
+                finalNetPay,
+                employerInsurance,
+                unemploymentInsurance,
+                totalEmployer,
+                daysWorked,
+                isMarried,
+                fullBenefits,
+                d
+            };
+            
+            updateDetailTable(lastCalculation, d, year);
+            
+            document.querySelector('.xl\:col-span-7').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if (typeof updateSeniorityLive === 'function') updateSeniorityLive();
+            showDailyRates(d, yearsOfService);
+        }
+
+        function showDailyRates(d, yearsOfService) {
+            const box = document.getElementById('dailyRatesBox');
+            if (!box) return;
+
+            const dailySeniority = seniorityTable1405[yearsOfService] || 0;
+            const fixedDaily = d.daily + dailySeniority;
+
+            box.innerHTML = `
+                <div class="bg-white rounded-xl p-2 border">
+                    <div class="text-slate-500">پایه سنوات روزانه</div>
+                    <div class="font-bold text-emerald-700">${formatRial(dailySeniority)}</div>
+                </div>
+                <div class="bg-white rounded-xl p-2 border">
+                    <div class="text-slate-500">دستمزد روزانه</div>
+                    <div class="font-bold">${formatRial(d.daily)}</div>
+                </div>
+                <div class="bg-white rounded-xl p-2 border border-emerald-300">
+                    <div class="text-emerald-600">مزد ثابت روزانه</div>
+                    <div class="font-bold text-emerald-700">${formatRial(fixedDaily)}</div>
+                </div>
+            `;
+        }
+        
+        function updateDetailTable(calc, d, year) {
+            const tbody = document.getElementById('detailBody');
+            tbody.innerHTML = '';
+            
+            const rows = [
+                { label: 'حقوق پایه', value: calc.baseProRata, sub: calc.baseCalculationNote || `${calc.daysWorked} روز × ${formatDaily(d.daily)}` },
+                { label: 'حق مسکن', value: calc.housingPay ?? d.housing, note: (!calc.fullBenefits && calc.daysWorked < 30) ? 'پرو-راتا' : '' },
+                { label: 'حق بن و خواربار', value: calc.foodPay ?? d.food, note: (!calc.fullBenefits && calc.daysWorked < 30) ? 'پرو-راتا' : '' },
+                { label: 'حق تاهل', value: calc.marriagePay ?? (document.getElementById('isMarried')?.checked ? d.marriage : 0), note: (calc.marriagePay ?? 0) > 0 ? '' : 'تعریف نشده' },
+                { label: `حق اولاد (${calc.numChildren ?? 0} فرزند)`, value: calc.childBenefit, note: (calc.numChildren ?? 0) > 0 ? 'هر فرزند ۱۰۰ حداقل حقوق' : '' },
+                { label: 'اضافه‌کاری', value: calc.overtimePay, sub: (calc.overtimePay > 0 ? `${Math.round((calc.overtimePay / (calc.effectiveOvertimeHourly || d.overtimeHourly)) || 0)} ساعت × ${formatRial(calc.effectiveOvertimeHourly ?? d.overtimeHourly)}` + (calc.yearsOfService > 0 ? ' (با پایه سنوات)' : '') : '') },
+                { label: 'جمعه‌کاری / تعطیلات (۴۰۰)', value: calc.fridayPay, sub: (calc.fridayPay > 0 ? `${Math.round((calc.fridayPay / ((d.daily + (seniorityTable1405[calc.yearsOfService] || 0)) * 1.4)) || 0)} روز × (دستمزد روزانه + پایه سنوات روزانه) × ۱۷۴` : '') },
+                { label: `مزایای شیفت (${(calc.shiftExtraRate * 100).toFixed(1)}۰)`, value: calc.shiftPay },
+                { label: `پایه سنوات ماهانه (سابقه ${calc.yearsOfService ?? 0} سال)`, value: calc.seniorityPay ?? 0, note: (calc.yearsOfService ?? 0) > 0 ? 'روزانه × روزهای کارکرد (از جدول ۱۴۰۵)' : '' },
+                { label: 'جمع ناخالص', value: calc.grossPay, highlight: true },
+                { label: 'کسر بیمه سهم کارگر (۷۰)', value: -calc.workerInsurance, highlight: true, color: 'text-red-600' },
+                { label: 'مالیات بر درآمد (پله‌ای)', value: calc.incomeTax || 0, highlight: true, color: 'text-red-600' },
+                { label: 'خالص دریافتی نهایی کارگر (پس از مالیات)', value: calc.finalNetPay, highlight: true, bold: true, color: 'text-emerald-700' },
+                { label: 'بیمه سهم کارفرما (۲۰۰)', value: calc.employerInsurance },
+                { label: 'بیمه بیکاری (۳۰)', value: calc.unemploymentInsurance },
+                { label: 'جمع هزینه کارفرما', value: calc.totalEmployer, highlight: true, bold: true, color: 'text-blue-700' }
+            ];
+            
+            rows.forEach(row => {
+                if (row.value === null || row.value === 0 && !row.highlight) return;
+                
+                const tr = document.createElement('tr');
+                tr.className = `detail-row ${row.highlight ? 'bg-slate-50 font-medium' : ''}`;
+                
+                let valueHtml = '';
+                if (row.value !== null) {
+                    const sign = row.value < 0 ? '-' : '';
+                    const colorClass = row.color || (row.value < 0 ? 'text-red-600' : 'text-slate-800');
+                    valueHtml = `<span class="${colorClass} font-semibold persian-number">${sign}${formatRial(Math.abs(row.value))}</span>`;
+                }
+                
+                let subHtml = row.sub ? `<div class="text-[10px] text-slate-500">${row.sub}</div>` : '';
+                let noteHtml = row.note ? `<div class="text-[10px] text-amber-600">${row.note}</div>` : '';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5">
+                        <div class="font-medium">${row.label}</div>
+                        ${subHtml}
+                        ${noteHtml}
+                    </td>
+                    <td class="px-4 py-2.5 text-left font-mono text-[13px] tabular-nums font-semibold tracking-tighter">${valueHtml}</td>
+                `;
+                
+                if (row.bold) tr.style.fontWeight = '700';
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function clearResults() {
+            document.getElementById('netWorker').innerHTML = '۰ <span class="text-base font-normal">ریال</span>';
+            document.getElementById('grossWorker').innerHTML = '۰ ریال';
+            document.getElementById('workerIns').innerHTML = '۰ ریال';
+            document.getElementById('totalEmployer').innerHTML = '۰ <span class="text-base font-normal">ریال</span>';
+            document.getElementById('employerBaseBenefits').innerHTML = '۰';
+            document.getElementById('employerIns').innerHTML = '۰';
+            document.getElementById('unempIns').innerHTML = '۰';
+            document.getElementById('detailBody').innerHTML = '';
+            lastCalculation = null;
+        }
+        
+        function copyResults() {
+            if (!lastCalculation) {
+                alert('ابتدا محاسبه را انجام دهید');
+                return;
+            }
+            const text = `نتایج محاسبه‌گر حقوق و دستمزد آتیه مهر طوس (${lastCalculation.year}):
+` +
+                        `دریافتی خالص کارگر: ${formatRial(lastCalculation.finalNetPay)} ریال
+` +
+                        `هزینه تمام‌شده کارفرما: ${formatRial(lastCalculation.totalEmployer)} ریال`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-white border border-emerald-200 shadow-xl rounded-3xl px-6 py-4 flex items-center gap-x-4 z-[9999]';
+                toast.style.minWidth = '280px';
+                toast.innerHTML = `
+                    <div class="w-10 h-10 bg-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-check text-emerald-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-emerald-700">کپی شد!</div>
+                        <div class="text-xs text-slate-500 mt-0.5">نتایج محاسبه در کلیپ‌برد ذخیره شد</div>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.transition = 'all 0.3s ease';
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 2200);
+            });
+        }
+        
+        function printResults() {
+            const resultsContainer = document.querySelector('.xl\:col-span-7');
+            if (!resultsContainer) return;
+
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            if (!printWindow) {
+                alert('لطفاً پاپ‌آپ را فعال کنید تا گزارش چاپ شود.');
+                return;
+            }
+
+            const printHTML = resultsContainer.innerHTML;
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="fa" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>گزارش محاسبه حقوق - موسسه حقوقی آتیه مهر طوس</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+                        body {
+                            font-family: 'Vazirmatn', Tahoma, sans-serif;
+                            direction: rtl;
+                            padding: 15px 25px;
+                            max-width: 210mm;
+                            margin: 0 auto;
+                            font-size: 11.5px;
+                            line-height: 1.5;
+                            color: #1e293b;
+                        }
+                        .header {
+                            text-align: center;
+                            border-bottom: 3px solid #0f766e;
+                            padding-bottom: 12px;
+                            margin-bottom: 18px;
+                            background: linear-gradient(to bottom, #f0fdfa, white);
+                            padding-top: 8px;
+                            border-radius: 8px;
+                        }
+                        .header h2 {
+                            color: #0f766e;
+                            margin: 0 0 4px 0;
+                            font-size: 19px;
+                            font-weight: 700;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 8px;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                            border-radius: 6px;
+                            overflow: hidden;
+                        }
+                        td, th {
+                            padding: 7px 12px;
+                            border-bottom: 1px solid #e2e8f0;
+                            text-align: right;
+                        }
+                        .highlight {
+                            background-color: #f0fdfa;
+                            font-weight: 600;
+                        }
+                        .footer {
+                            margin-top: 20px;
+                            font-size: 9px;
+                            color: #64748b;
+                            text-align: center;
+                            border-top: 1px solid #0f766e;
+                            padding-top: 8px;
+                        }
+                        @media print {
+                            body { padding: 8px 12px; }
+                            .detail-row { page-break-inside: avoid; }
+                            table { box-shadow: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>گزارش محاسبه حقوق و دستمزد ماهانه — سال ${currentYear}</h2>
+                        <p><strong>موسسه حقوقی آتیه مهر طوس</strong></p>
+                    </div>
+                    
+                    ${printHTML}
+                    
+                    <div class="footer">
+                        تولید شده توسط محاسبه‌گر حقوق و دستمزد ۱۴۰۵ | ${new Date().toLocaleDateString('fa-IR')}<br>
+                        مشاوره رایگان: ۰۹۱۵۸۱۵۳۵۳۰
+                    </div>
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 300);
+        }
+
+        // ==================== NEW: PAYSLIP SECTION ====================
+        function showPayslip() {
+            if (!lastCalculation) {
+                alert('ابتدا محاسبه را انجام دهید سپس دکمه فیش حقوقی را بزنید');
+                return;
+            }
+
+            const calc = lastCalculation;
+            const modal = document.getElementById('payslipModal');
+            const content = document.getElementById('payslipContent');
+            
+            document.getElementById('payslipYear').innerText = calc.year;
+
+            const d = calc.d;
+            const persianMonths = ['فروردین','اردبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسخند'];
+            const now = new Date();
+            const jNow = { year: now.getFullYear() - 621, month: now.getMonth() + 1 }; // approximate
+            
+            content.innerHTML = `
+                <div class="max-w-[780px] mx-auto bg-white border border-slate-300 rounded-2xl overflow-hidden shadow">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-l from-emerald-800 to-teal-700 text-white px-8 py-5 flex items-center justify-between">
+                        <div class="flex items-center gap-x-4">
+                            <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                                <i class="fa-solid fa-balance-scale text-3xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-2xl tracking-tight">موسسه حقوقی آتیه مهر طوس</div>
+                                <div class="text-emerald-200 text-sm">فیش حقوقی ماهانه — سال ${calc.year}</div>
+                            </div>
+                        </div>
+                        <div class="text-right text-sm">
+                            <div class="font-semibold">شماره فیش: <span class="font-mono">${String(Math.floor(Math.random()*900000)+100000)}</span></div>
+                            <div class="text-emerald-200">تاریخ صدور: ${new Date().toLocaleDateString('fa-IR')}</div>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Employee Info -->
+                        <div class="grid grid-cols-2 gap-x-8 mb-6 text-sm">
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">نام و نام خانوادگی</div>
+                                <div class="font-semibold text-lg">[ نام کارگر ]</div>
+                                <div class="mt-3 grid grid-cols-2 gap-x-4">
+                                    <div>
+                                        <div class="text-xs text-slate-500">کد ملی</div>
+                                        <div class="font-mono font-semibold">[ کد ملی ]</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-slate-500">کد پرسنلی</div>
+                                        <div class="font-mono font-semibold">[ کد پرسنلی ]</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-sm">
+                                <div class="flex justify-between py-1 border-b">
+                                    <span class="text-slate-500">سابقه کار</span>
+                                    <span class="font-semibold">${calc.yearsOfService} سال</span>
+                                </div>
+                                <div class="flex justify-between py-1 border-b">
+                                    <span class="text-slate-500">شیفت کاری</span>
+                                    <span class="font-semibold">${document.getElementById('shiftType').selectedOptions[0].text}</span>
+                                </div>
+                                <div class="flex justify-between py-1">
+                                    <span class="text-slate-500">تعداد فرزند</span>
+                                    <span class="font-semibold">${calc.numChildren}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Earnings -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2 px-1">
+                                <div class="font-bold text-emerald-700 flex items-center gap-x-2">
+                                    <i class="fa-solid fa-plus-circle"></i>
+                                    <span>درآمدها</span>
+                                </div>
+                                <div class="text-xs text-emerald-600 font-medium">مبلغ (ریال)</div>
+                            </div>
+                            
+                            <div class="bg-white border border-emerald-100 rounded-2xl divide-y text-sm">
+                                <div class="flex justify-between px-4 py-2.5">
+                                    <div>حقوق پایه (${calc.baseCalculationNote})</div>
+                                    <div class="font-mono font-semibold text-emerald-700">${formatRial(calc.baseProRata)}</div>
+                                </div>
+                                ${calc.housingPay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>حق مسکن</div><div class="font-mono font-semibold">${formatRial(calc.housingPay)}</div></div>` : ''}
+                                ${calc.foodPay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>حق بن و خواربار</div><div class="font-mono font-semibold">${formatRial(calc.foodPay)}</div></div>` : ''}
+                                ${calc.marriagePay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>حق تاهل</div><div class="font-mono font-semibold">${formatRial(calc.marriagePay)}</div></div>` : ''}
+                                ${calc.childBenefit > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>حق اولاد (${calc.numChildren} فرزند)</div><div class="font-mono font-semibold">${formatRial(calc.childBenefit)}</div></div>` : ''}
+                                ${calc.overtimePay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>اضافه‌کاری (${Math.round(calc.overtimePay / (calc.effectiveOvertimeHourly || 1057990))} ساعت)</div><div class="font-mono font-semibold">${formatRial(calc.overtimePay)}</div></div>` : ''}
+                                ${calc.fridayPay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>جمعه‌کاری / تعطیلات</div><div class="font-mono font-semibold">${formatRial(calc.fridayPay)}</div></div>` : ''}
+                                ${calc.shiftPay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>مزایای شیفت</div><div class="font-mono font-semibold">${formatRial(calc.shiftPay)}</div></div>` : ''}
+                                ${calc.seniorityPay > 0 ? `<div class="flex justify-between px-4 py-2.5"><div>پایه سنوات (سابقه ${calc.yearsOfService} سال)</div><div class="font-mono font-semibold">${formatRial(calc.seniorityPay)}</div></div>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="grid grid-cols-3 gap-3 mb-5">
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-center">
+                                <div class="text-xs text-emerald-600">جمع ناخالص</div>
+                                <div class="font-extrabold text-xl text-emerald-700 tabular-nums persian-number">${formatRial(calc.grossPay)}</div>
+                            </div>
+                            <div class="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
+                                <div class="text-xs text-red-600">جمع کسری‌ها</div>
+                                <div class="font-extrabold text-xl text-red-600 tabular-nums persian-number">${formatRial(calc.workerInsurance + (calc.incomeTax || 0))}</div>
+                            </div>
+                            <div class="bg-emerald-700 text-white rounded-2xl p-3 text-center">
+                                <div class="text-xs text-emerald-200">خالص دریافتی</div>
+                                <div class="font-extrabold text-2xl tabular-nums persian-number">${formatRial(calc.finalNetPay)}</div>
+                            </div>
+                        </div>
+
+                        <!-- Deductions -->
+                        <div class="mb-5">
+                            <div class="font-bold text-red-700 flex items-center gap-x-2 mb-2 px-1 text-sm">
+                                <i class="fa-solid fa-minus-circle"></i>
+                                <span>کسری‌ها</span>
+                            </div>
+                            <div class="bg-white border border-red-100 rounded-2xl text-sm divide-y">
+                                <div class="flex justify-between px-4 py-2.5">
+                                    <div>بیمه سهم کارگر (۷۰)</div>
+                                    <div class="font-mono font-semibold text-red-600">${formatRial(calc.workerInsurance)}</div>
+                                </div>
+                                <div class="flex justify-between px-4 py-2.5">
+                                    <div>مالیات بر درآمد حقوق</div>
+                                    <div class="font-mono font-semibold text-red-600">${formatRial(calc.incomeTax || 0)}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employer Cost -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm">
+                            <div class="font-semibold text-blue-700 mb-2 flex items-center gap-x-2">
+                                <i class="fa-solid fa-building"></i>
+                                <span>هزینه تمام‌شده کارفرما</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <div>بیمه سهم کارفرما (۲۰۰) + بیمه بیکاری (۳۰)</div>
+                                <div class="font-bold text-blue-700">${formatRial(calc.employerInsurance + calc.unemploymentInsurance)}</div>
+                            </div>
+                            <div class="text-[10px] text-blue-600 mt-1">جمع کل هزینه کارفرما: <span class="font-extrabold">${formatRial(calc.totalEmployer)}</span> ریال</div>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-4 bg-slate-50 text-[10px] text-center text-slate-500 border-t">
+                        این فیش حقوقی بر اساس قوانین کار و تامین اجتماعی سال ۱۴۰۵ تولید شده است.<br>
+                        مشاوره رایگان: ۰۹۱۵۸۱۵۳۵۳۰
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closePayslipModal() {
+            const modal = document.getElementById('payslipModal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function printPayslip() {
+            const content = document.getElementById('payslipContent').innerHTML;
+            const printWin = window.open('', '_blank');
+            printWin.document.write(`
+                <html dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>فیش حقوقی</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+                        body { font-family: 'Vazirmatn', system-ui; padding: 20px; max-width: 210mm; margin: 0 auto; font-size: 12px; }
+                        .payslip-print { border: 2px solid #0f766e; border-radius: 12px; overflow: hidden; }
+                    </style>
+                </head>
+                <body>
+                    <div class="payslip-print">
+                        ${content}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            setTimeout(() => {
+                printWin.print();
+            }, 400);
+        }
+        
+        function resetToDefault() {
+            switchYear('1405');
+            
+            document.getElementById('baseInput').value = salaryData['1405'].base.toLocaleString('en-US');
+            document.getElementById('monthDays').value = 30;
+            document.getElementById('fridayCount').value = 4;
+            document.getElementById('holidayCount').value = 0;
+            document.getElementById('actualHoursWorked').value = 0;
+            document.getElementById('fridayDays').value = 0;
+            document.getElementById('shiftType').value = 'none';
+            document.getElementById('numChildren').value = 0;
+            document.getElementById('isMarried').checked = true;
+            document.getElementById('fullBenefits').checked = true;
+            document.getElementById('employmentYear').value = 1398;
+            
+            updateChildNote();
+            updateShiftInfo();
+            if (typeof updateWorkingDaysLive === 'function') updateWorkingDaysLive();
+            clearResults();
+        }
+        
+        function init() {
+            initTailwind();
+            
+            const d1405 = salaryData['1405'];
+            document.getElementById('baseInput').value = d1405.base.toLocaleString('en-US');
+            document.getElementById('quickBase').innerHTML = formatRial(d1405.base);
+            
+            document.getElementById('shiftInfo').innerHTML = '';
+            
+            document.getElementById('numChildren').addEventListener('input', updateChildNote);
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON') {
+                    calculateSalary();
+                }
+            });
+            
+            document.getElementById('btn1405').classList.add('bg-teal-700', 'text-white', 'border-teal-700');
+            document.getElementById('btn1404').classList.add('border-slate-300', 'text-slate-600');
+            
+            setTimeout(() => {
+                if (typeof updateWorkingDaysLive === 'function') updateWorkingDaysLive();
+            }, 120);
+            
+            console.log('%c[محاسبه‌گر حقوق] پنل آماده است — بخش فیش حقوقی اضافه شد', 'color:#64748b');
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
