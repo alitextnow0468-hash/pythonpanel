@@ -1,0 +1,143 @@
+# main_window.txt
+# کلاس اصلی HRPanel با فراخوانی ماژولار از tabs
+
+import sys
+import os
+import sqlite3
+from datetime import datetime
+import jdatetime
+import qtawesome as qta
+
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
+    QHeaderView, QMessageBox, QSpinBox, QGroupBox, QGridLayout, QFrame, QDialog,
+    QTextEdit, QFileDialog, QDateEdit, QCheckBox
+)
+from PySide6.QtCore import Qt, QTimer, QRectF, QSize, QDate
+from PySide6.QtGui import QFont, QFontDatabase, QPainter, QColor, QPen, QPixmap
+
+# اضافه کردن مسیر به sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# فراخوانی تب‌ها
+try:
+    from tabs.home_tab import create_home_tab
+    from tabs.dashboard_tab import create_dashboard_tab
+    from tabs.register_tab import create_register_tab
+    from tabs.list_tab import create_list_tab
+    from tabs.salary_tab import create_salary_tab
+    from tabs.leave_tab import create_leave_tab, fill_leave_employee_info, calculate_leave_days, print_leave_form
+except ImportError:
+    # در صورتی که هنوز ساخته نشده‌اند
+    pass
+
+# ==================== تنظیمات ====================
+COMPANY_NAME = "موسسه حقوقی آتیه مهܱ طوس"
+MAIN_TITLE = "پنل مدیریت نیروی انسانی آتیه مهܱ طوس"
+DEFAULT_PASSWORD = "1234"
+MASTER_PASSWORD = "2374"
+
+class HRPanel(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(MAIN_TITLE)
+        self.setGeometry(50, 30, 1320, 760)
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+
+        self.employees = []
+        self.existing_codes = set()
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.company_name = COMPANY_NAME
+        self.panel_password = DEFAULT_PASSWORD
+        self.leave_pdf_folder = os.path.join(self.base_dir, "leave_forms")
+
+        self.setup_font()
+
+        if not self.show_login_dialog():
+            sys.exit(0)
+
+        self.init_ui()
+        self.apply_styles()
+        self.update_header_date()
+
+        self.init_database()
+        self.load_settings()
+        self.load_employees_from_db()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_header_date)
+        self.timer.start(60000)
+
+    def show_login_dialog(self):
+        # ... (کد ورود رمز - همان قبلی)
+        pass  # برای کوتاهی، در نسخه بعدی کامل می‌گذارم
+
+    def setup_font(self):
+        font_path = os.path.join(self.base_dir, "resources", "Vazirmatn-Regular.ttf")
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        if font_id != -1:
+            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            app_font = QFont(font_family, 11)
+            QApplication.setFont(app_font)
+
+    def init_database(self):
+        # ... همان قبلی
+        pass
+
+    def load_settings(self):
+        # ... همان قبلی
+        pass
+
+    def save_setting(self, key, value):
+        # ... همان قبلی
+        pass
+
+    def load_employees_from_db(self):
+        # ... همان قبلی + self.populate_leave_combo()
+        pass
+
+    def init_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        main_layout = QVBoxLayout(central)
+
+        # Header
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: #1e40af; border-radius: 8px; padding: 8px;")
+        header_layout = QHBoxLayout(header_frame)
+        # ... هدر همان قبلی
+        main_layout.addWidget(header_frame)
+
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs)
+
+        # فراخوانی تب‌ها به صورت ماژولار
+        create_home_tab(self)
+        create_dashboard_tab(self)
+        create_register_tab(self)
+        create_list_tab(self)
+        create_salary_tab(self)
+        create_leave_tab(self)
+
+        self.tabs.currentChanged.connect(self.on_tab_changed)
+        self.tabs.tabBar().hide()
+
+    def on_tab_changed(self, index):
+        if index == 0:
+            self.tabs.tabBar().hide()
+        else:
+            self.tabs.tabBar().show()
+
+    def update_header_date(self):
+        # ... همان قبلی
+        pass
+
+    # بقیه متدها (edit, delete, salary calculation, etc.) همان قبلی خواهند ماند
+
+if __name__ == "__main__":
+    from PySide6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    window = HRPanel()
+    window.showFullScreen()
+    sys.exit(app.exec())
