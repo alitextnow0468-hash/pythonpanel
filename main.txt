@@ -1,0 +1,14 @@
+import sys
+import os
+from PySide6.QtWidgets import QApplication
+
+# اضافه کردن مسیر پروژه به sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from main_window import HRPanel   # در نسخه بعدی این فایل را می‌سازیم
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = HRPanel()
+    window.showFullScreen()
+    sys.exit(app.exec())
