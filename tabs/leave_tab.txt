@@ -1,0 +1,254 @@
+# tabs/leave_tab.txt
+# تب ثبت مرخصی با تقویم شمسی و محاسبه دقیق روز
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QGridLayout, QGroupBox, QLabel, QComboBox, 
+    QPushButton, QCheckBox, QSpinBox, QMessageBox, QTextEdit, QDialog
+)
+from PySide6.QtCore import Qt, QDate
+from PySide6.QtGui import QFont, QFontDatabase
+import jdatetime
+import os
+
+
+def create_leave_tab(self):
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+    layout.setContentsMargins(20, 15, 20, 15)
+    layout.setSpacing(12)
+
+    title = QLabel("ثبت مرخصی")
+    title.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e40af;")
+    layout.addWidget(title)
+
+    form_group = QGroupBox("اطلاعات مرخصی")
+    form_layout = QGridLayout(form_group)
+
+    # انتخاب کارمند
+    form_layout.addWidget(QLabel("انتخاب کارمند:"), 0, 0)
+    self.leave_employee_combo = QComboBox()
+    self.leave_employee_combo.currentIndexChanged.connect(self.fill_leave_employee_info)
+    form_layout.addWidget(self.leave_employee_combo, 0, 1, 1, 3)
+
+    form_layout.addWidget(QLabel("نام و نام خانوادگی:"), 1, 0)
+    self.leave_name_label = QLabel("")
+    form_layout.addWidget(self.leave_name_label, 1, 1)
+
+    form_layout.addWidget(QLabel("کد ملی / کد پرسنلی:"), 1, 2)
+    self.leave_code_label = QLabel("")
+    form_layout.addWidget(self.leave_code_label, 1, 3)
+
+    form_layout.addWidget(QLabel("سمت:"), 2, 0)
+    self.leave_position_label = QLabel("")
+    form_layout.addWidget(self.leave_position_label, 2, 1, 1, 3)
+
+    # نوع مرخصی
+    form_layout.addWidget(QLabel("نوع مرخصی:"), 3, 0)
+    leave_type_layout = QHBoxLayout()
+    self.chk_estehghaghi = QCheckBox("استحقاقی")
+    self.chk_estelaji = QCheckBox("استعلاجی")
+    self.chk_bedoun_hoghugh = QCheckBox("بدون حقوق")
+    self.chk_zayeman = QCheckBox("زایمان")
+    leave_type_layout.addWidget(self.chk_estehghaghi)
+    leave_type_layout.addWidget(self.chk_estelaji)
+    leave_type_layout.addWidget(self.chk_bedoun_hoghugh)
+    leave_type_layout.addWidget(self.chk_zayeman)
+    form_layout.addLayout(leave_type_layout, 3, 1, 1, 3)
+
+    # تاریخ‌های شمسی (جدید)
+    persian_months = ["فروردین", "اردبهشت", "خرداد", "تیر", "مرداد", "شهܱیور",
+                      "مهܱ", "آبان", "آذر", "دی", "بهمن", "اسخند"]
+
+    # از تاریخ
+    form_layout.addWidget(QLabel("از تاریخ (شمسی):"), 4, 0)
+    from_layout = QHBoxLayout()
+    self.leave_from_year = QSpinBox()
+    self.leave_from_year.setRange(1300, 1420)
+    self.leave_from_year.setValue(1405)
+    self.leave_from_year.valueChanged.connect(self.calculate_leave_days)
+
+    self.leave_from_month = QComboBox()
+    self.leave_from_month.addItems(persian_months)
+    self.leave_from_month.setCurrentIndex(3)  # تیر
+    self.leave_from_month.currentIndexChanged.connect(self.calculate_leave_days)
+
+    self.leave_from_day = QSpinBox()
+    self.leave_from_day.setRange(1, 31)
+    self.leave_from_day.setValue(1)
+    self.leave_from_day.valueChanged.connect(self.calculate_leave_days)
+
+    from_layout.addWidget(self.leave_from_year)
+    from_layout.addWidget(QLabel("/"))
+    from_layout.addWidget(self.leave_from_month)
+    from_layout.addWidget(QLabel("/"))
+    from_layout.addWidget(self.leave_from_day)
+    form_layout.addLayout(from_layout, 4, 1)
+
+    # تا تاریخ
+    form_layout.addWidget(QLabel("تا تاریخ (شمسی):"), 4, 2)
+    to_layout = QHBoxLayout()
+    self.leave_to_year = QSpinBox()
+    self.leave_to_year.setRange(1300, 1420)
+    self.leave_to_year.setValue(1405)
+    self.leave_to_year.valueChanged.connect(self.calculate_leave_days)
+
+    self.leave_to_month = QComboBox()
+    self.leave_to_month.addItems(persian_months)
+    self.leave_to_month.setCurrentIndex(3)
+    self.leave_to_month.currentIndexChanged.connect(self.calculate_leave_days)
+
+    self.leave_to_day = QSpinBox()
+    self.leave_to_day.setRange(1, 31)
+    self.leave_to_day.setValue(2)
+    self.leave_to_day.valueChanged.connect(self.calculate_leave_days)
+
+    to_layout.addWidget(self.leave_to_year)
+    to_layout.addWidget(QLabel("/"))
+    to_layout.addWidget(self.leave_to_month)
+    to_layout.addWidget(QLabel("/"))
+    to_layout.addWidget(self.leave_to_day)
+    form_layout.addLayout(to_layout, 4, 3)
+
+    form_layout.addWidget(QLabel("تعداد روز:"), 5, 0)
+    self.leave_days_label = QLabel("0 روز")
+    self.leave_days_label.setStyleSheet("font-weight: bold; color: #1e40af; font-size: 14px;")
+    form_layout.addWidget(self.leave_days_label, 5, 1)
+
+    layout.addWidget(form_group)
+
+    btn_print = QPushButton(qta.icon('fa5s.print', color='white'), " چاپ و ذخیره PDF فرم مرخصی")
+    btn_print.setMinimumHeight(48)
+    btn_print.setStyleSheet("background-color: #0f766e; font-size: 15px;")
+    btn_print.clicked.connect(self.print_leave_form)
+    layout.addWidget(btn_print)
+
+    layout.addStretch()
+
+    self.tabs.addTab(tab, "ثبت مرخصی")
+
+
+def fill_leave_employee_info(self):
+    idx = self.leave_employee_combo.currentIndex()
+    if idx < 0 or idx >= len(self.employees):
+        return
+    emp = self.employees[idx]
+    self.leave_name_label.setText(emp.get("last_name", ""))
+    self.leave_code_label.setText(f"{emp.get('national_id', '')} / {emp.get('code', '')}")
+    self.leave_position_label.setText(emp.get("position", ""))
+
+
+def calculate_leave_days(self):
+    try:
+        from_jd = jdatetime.date(
+            self.leave_from_year.value(),
+            self.leave_from_month.currentIndex() + 1,
+            self.leave_from_day.value()
+        )
+        to_jd = jdatetime.date(
+            self.leave_to_year.value(),
+            self.leave_to_month.currentIndex() + 1,
+            self.leave_to_day.value()
+        )
+        delta = to_jd - from_jd
+        days = delta.days
+        if days < 0:
+            days = 0
+        self.leave_days_label.setText(f"{days} روز")
+    except Exception:
+        self.leave_days_label.setText("0 روز")
+
+
+def print_leave_form(self):
+    idx = self.leave_employee_combo.currentIndex()
+    if idx < 0:
+        QMessageBox.warning(self, "خطا", "لطفاً یک کارمند انتخاب کنید")
+        return
+
+    emp = self.employees[idx]
+
+    from_jd = jdatetime.date(
+        self.leave_from_year.value(),
+        self.leave_from_month.currentIndex() + 1,
+        self.leave_from_day.value()
+    )
+    to_jd = jdatetime.date(
+        self.leave_to_year.value(),
+        self.leave_to_month.currentIndex() + 1,
+        self.leave_to_day.value()
+    )
+
+    from_date_str = from_jd.strftime("%Y/%m/%d")
+    to_date_str = to_jd.strftime("%Y/%m/%d")
+    days = self.leave_days_label.text()
+
+    now = jdatetime.datetime.now()
+    reg_date = now.strftime("%Y/%m/%d")
+
+    leave_types = []
+    if self.chk_estehghaghi.isChecked():
+        leave_types.append("مرخصی استحقاقی سالانه")
+    if self.chk_estelaji.isChecked():
+        leave_types.append("مرخصی استعلاجی")
+    if self.chk_bedoun_hoghugh.isChecked():
+        leave_types.append("مرخصی بدون حقوق")
+    if self.chk_zayeman.isChecked():
+        leave_types.append("مرخصی زایمان")
+
+    leave_type_text = "\n".join([f"☑ {t}" for t in leave_types]) if leave_types else "هیچک انتخاب نشده"
+
+    text = f"""فرم درخواست مرخصی
+تاریخ ثبت: {reg_date}
+
+نام و نام خانوادگی: {emp.get('last_name', '')}          کد ملی / شماره پرسنلی: {emp.get('national_id', '')} / {emp.get('code', '')}
+سمت / واحد سازمانی: {emp.get('position', '')}
+
+نوع مرخصی درخواستی:
+{leave_type_text}
+
+مدت مرخصی درخواستی:
+از تاریخ: {from_date_str}           تا تاریخ: {to_date_str}           تعداد روز: {days}
+
+دلیل درخواست مرخصی:
+
+
+شماره تماس در طول مرخصی:
+تلفن: ................................................    موبایل: ................................................
+
+تأیید متقاضی
+اینجانب با آگاهی از مفاد قانون کار جمهوری اسلامی ایران (ماده 66 و تبصره‌های آن در خصوص مرخصی استحقاقی) و مقررات داخلی شرکت، درخواست خود را ثبت می‌نمایم و متعهد می‌گردم پس از پایان مرخصی در اولین روز کاری حضور یابم.
+
+نام و نام خانوادگی متقاضی
+........................................
+
+تاریخ: {reg_date}          امضء و اثر انگشت
+"""
+
+    os.makedirs(self.leave_pdf_folder, exist_ok=True)
+    safe_name = emp.get('last_name', 'leave').replace(' ', '_')
+    filename = f"leave_{safe_name}_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+    pdf_path = os.path.join(self.leave_pdf_folder, filename)
+
+    from PySide6.QtPrintSupport import QPrinter
+    from PySide6.QtGui import QTextDocument
+
+    printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+    printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+    printer.setOutputFileName(pdf_path)
+
+    doc = QTextDocument()
+    doc.setPlainText(text)
+
+    # تلاش برای استفاده از فونت BNAZANIN
+    bnazanin_path = os.path.join(self.base_dir, "resources", "BNAZANIN.TTF")
+    if os.path.exists(bnazanin_path):
+        font_id = QFontDatabase.addApplicationFont(bnazanin_path)
+        if font_id != -1:
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if families:
+                doc.setDefaultFont(QFont(families[0], 11))
+    else:
+        doc.setDefaultFont(QFont("Vazirmatn", 11))
+
+    doc.print_(printer)
+
+    QMessageBox.information(self, "موفق", f"فرم با موفقیت در این آدرس ذخیره شد:\n{pdf_path}")
